@@ -4,233 +4,79 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rigenera Condominio | Home</title>
-  <meta name="description" content="Rigeneriamo il condominio con metodo: percorso tecnico, normativo e finanziario per amministratori e condomini.">
-  <style>
-    :root {
-      --bg: #0c1a16;
-      --card: #12231e;
-      --accent: #48d597;
-      --text: #e6f3ec;
-      --muted: #b6c8be;
-      --border: #1d2e28;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      min-height: 100vh;
-    }
-    a { color: inherit; text-decoration: none; }
-    img { max-width: 100%; display: block; }
-    .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      background: rgba(12, 26, 22, 0.9);
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid var(--border);
-    }
-    .topbar .inner {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 16px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 24px;
-    }
-    .brand { font-weight: 700; letter-spacing: 0.01em; }
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      font-size: 0.95rem;
-    }
-    .nav-links a { color: var(--muted); transition: color 0.2s ease; }
-    .nav-links a:hover { color: var(--text); }
-
-    main { display: flex; flex-direction: column; min-height: 100vh; }
-
-    .hero {
-      flex: 1;
-      display: grid;
-      place-items: center;
-      padding: 64px 24px 48px;
-      position: relative;
-      overflow: hidden;
-    }
-    .hero::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 50% 30%, rgba(72, 213, 151, 0.18), transparent 45%),
-                  radial-gradient(circle at 80% 70%, rgba(72, 213, 151, 0.12), transparent 35%);
-      pointer-events: none;
-    }
-    .hero-card {
-      position: relative;
-      max-width: 960px;
-      width: min(960px, 100%);
-      padding: 56px 48px;
-      background: linear-gradient(135deg, rgba(26, 46, 38, 0.85), rgba(16, 33, 27, 0.9));
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
-      text-align: center;
-    }
-    .hero-logo {
-      margin: 0 auto 28px;
-      width: min(420px, 80vw);
-      filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.35));
-    }
-    h1 {
-      margin: 0 0 16px;
-      font-size: clamp(1.8rem, 3vw + 1rem, 2.6rem);
-      letter-spacing: -0.01em;
-    }
-    .lede {
-      margin: 0 auto 24px;
-      max-width: 760px;
-      color: var(--muted);
-      font-size: 1.05rem;
-    }
-    .cta-group {
-      display: flex;
-      justify-content: center;
-      gap: 14px;
-      flex-wrap: wrap;
-      margin: 28px 0 18px;
-    }
-    .btn {
-      padding: 12px 18px;
-      border-radius: 999px;
-      border: 1px solid var(--accent);
-      font-weight: 600;
-      letter-spacing: 0.01em;
-      cursor: pointer;
-      transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, color 0.18s ease;
-    }
-    .btn.primary { background: var(--accent); color: #0c1a16; }
-    .btn.secondary { background: transparent; color: var(--text); }
-    .btn:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(72, 213, 151, 0.2); }
-
-    .powered {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin-top: 12px;
-    }
-    .powered img { height: 22px; width: auto; }
-
-    .image-section {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 16px;
-      padding: 12px 24px 72px;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-    .image-tile {
-      position: relative;
-      border-radius: 14px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      background: var(--card);
-      min-height: 220px;
-    }
-    .image-tile img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      filter: saturate(0.7) contrast(0.95) brightness(0.9);
-      transform: scale(1.02);
-    }
-    .image-tile::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg, rgba(12, 26, 22, 0.35), rgba(12, 26, 22, 0.65));
-      pointer-events: none;
-    }
-
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 28px 24px 36px;
-      color: var(--muted);
-      background: #0b1713;
-    }
-    .footer-nav {
-      display: flex;
-      gap: 18px;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.95rem;
-    }
-    .footer-nav a { color: var(--muted); }
-    .footer-nav a:hover { color: var(--text); }
-
-    @media (max-width: 640px) {
-      .hero-card { padding: 40px 26px; }
-      .cta-group { gap: 10px; }
-      .topbar .inner { padding: 14px 18px; }
-    }
-  </style>
+  <meta name="description" content="Percorso tecnico, normativo e finanziario, con decisioni assembleari corrette e documentate.">
+  <link rel="stylesheet" href="assets/css/styles.css">
 </head>
-<body>
-  <header class="topbar">
-    <div class="inner">
-      <div class="brand">Rigenera Condominio</div>
-      <nav class="nav-links" aria-label="Navigazione principale">
-        <a href="soluzione.html">Soluzione</a>
-        <a href="come-funziona.html">Come funziona</a>
-        <a href="faq.html">FAQ</a>
-        <a href="contatti.html">Contatti</a>
-      </nav>
+<body class="home-body">
+  <header class="site-header">
+    <div class="brand-cluster" aria-label="Rigenera Condominio">
+      <a class="logo-link" href="index.html">
+        <img src="IMG/rigenera-condominio.png" alt="Logo Rigenera Condominio" class="logo-mark">
+        <div class="logo-text">
+          <span class="brand">Rigenera Condominio</span>
+          <span class="sub-brand">Percorsi sostenibili per condomìni</span>
+        </div>
+      </a>
+      <div class="powered">
+        <span class="powered-label">Powered by</span>
+        <img src="IMG/da2-logo.png" alt="Logo DA²" class="powered-logo">
+        <span class="powered-name">DA² S.p.A. Benefit</span>
+      </div>
+    </div>
+    <button class="nav-toggle" aria-label="Apri menu" aria-expanded="false">☰</button>
+    <nav class="main-nav" aria-label="Navigazione principale">
+      <ul>
+        <li><a href="soluzione.html">Soluzione</a></li>
+        <li><a href="come-funziona.html">Come funziona</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+        <li><a href="contatti.html">Contatti</a></li>
+      </ul>
+    </nav>
+    <div class="header-cta">
+      <a class="btn secondary" href="contatti.html">Parla con un consulente</a>
+      <a class="btn primary" href="contatti.html">Richiedi analisi preliminare</a>
     </div>
   </header>
 
-  <main>
-    <section class="hero" aria-labelledby="hero-title">
-      <div class="hero-card">
-        <img class="hero-logo" src="IMG/rigenera-condominio.png" alt="Rigenera Condominio" loading="eager">
-        <h1 id="hero-title">Rigeneriamo il condominio, senza scorciatoie.</h1>
-        <p class="lede">Percorso tecnico, normativo e finanziario per ridurre costi e complessità, con decisioni assembleari corrette e documentazione completa.</p>
-        <div class="cta-group">
+  <main class="home-main">
+    <section class="home-hero" aria-labelledby="hero-title">
+      <span class="home-orb" style="--orb-size: 280px; --orb-top: 18%; --orb-left: 18%; --orb-color: rgba(72, 213, 151, 0.28); --orb-duration: 32s;"></span>
+      <span class="home-orb" style="--orb-size: 360px; --orb-top: 68%; --orb-left: 72%; --orb-color: rgba(212, 175, 55, 0.2); --orb-duration: 38s;"></span>
+      <span class="home-orb" style="--orb-size: 220px; --orb-top: 40%; --orb-left: 82%; --orb-color: rgba(72, 213, 151, 0.18); --orb-duration: 28s;"></span>
+      <div class="home-hero-inner">
+        <div class="home-logo-shell" aria-hidden="false">
+          <img class="home-logo" src="IMG/rigenera-condominio.png" alt="Rigenera Condominio" loading="eager">
+        </div>
+        <h1 class="home-title" id="hero-title">Rigeneriamo il condominio, senza scorciatoie.</h1>
+        <p class="home-subtitle">Percorso tecnico, normativo e finanziario, con decisioni assembleari corrette e documentate.</p>
+        <div class="home-gold-line" aria-hidden="true"></div>
+        <div class="home-cta">
           <a class="btn primary" href="contatti.html">Richiedi analisi preliminare</a>
           <a class="btn secondary" href="contatti.html">Parla con un consulente</a>
         </div>
-        <div class="powered">
-          <span>Powered by</span>
-          <img src="IMG/da2-logo.png" alt="Logo DA²">
-          <span>DA² S.p.A. Benefit</span>
+        <div class="home-powered">
+          <span class="home-powered-label">Powered by</span>
+          <img src="IMG/da2-logo.png" alt="Logo DA²" class="home-powered-logo">
+          <span class="home-powered-name">DA² S.p.A. Benefit</span>
         </div>
-      </div>
-    </section>
-
-    <section class="image-section" aria-label="Contesto visivo">
-      <div class="image-tile">
-        <img src="IMG/AdobeStock_1078808558.jpeg" alt="Facciata condominiale sobria" loading="lazy">
-      </div>
-      <div class="image-tile">
-        <img src="IMG/AdobeStock_647043228.jpeg" alt="Dettaglio tecnico su documentazione" loading="lazy">
       </div>
     </section>
   </main>
 
-  <footer>
-    <nav class="footer-nav" aria-label="Link di servizio">
-      <a href="soluzione.html">Soluzione</a>
-      <a href="come-funziona.html">Come funziona</a>
-      <a href="faq.html">FAQ</a>
-      <a href="contatti.html">Contatti</a>
-      <a href="privacy.html">Privacy</a>
-    </nav>
+  <footer class="site-footer">
+    <div class="footer-top">
+      <p class="logo">Rigenera Condominio <span class="sub-brand">Powered by DA² S.p.A. Benefit</span></p>
+      <div class="footer-links">
+        <a href="soluzione.html">Soluzione</a>
+        <a href="come-funziona.html">Come funziona</a>
+        <a href="faq.html">FAQ</a>
+        <a href="contatti.html">Contatti</a>
+        <a href="privacy.html">Privacy</a>
+      </div>
+    </div>
+    <p class="copyright">© 2025 Rigenera Condominio – Powered by DA² S.p.A. Benefit. Tutti i diritti riservati.</p>
   </footer>
+
+  <script src="assets/js/main.js"></script>
 </body>
 </html>

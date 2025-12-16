@@ -213,6 +213,55 @@ h2, h3, h4 {
   border-color: var(--primary);
 }
 
+.finance-section {
+  background: radial-gradient(circle at 15% 20%, rgba(46, 204, 113, 0.08), transparent 40%),
+              radial-gradient(circle at 85% 10%, rgba(212, 175, 55, 0.08), transparent 45%),
+              var(--bg);
+}
+
+.finance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+  max-width: var(--max-width);
+  margin: 0 auto 18px;
+}
+
+.finance-card {
+  border-color: rgba(46, 204, 113, 0.35);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(212, 175, 55, 0.08);
+}
+
+.finance-card h3 {
+  margin-top: 0;
+}
+
+.finance-card ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 12px 0 0;
+  display: grid;
+  gap: 10px;
+  color: var(--secondary-text);
+}
+
+.finance-card ul li::before {
+  content: "•";
+  color: var(--gold);
+  margin-right: 8px;
+}
+
+.finance-note {
+  max-width: var(--max-width);
+  margin: 0 auto 20px;
+  color: var(--secondary-text);
+  font-size: 14px;
+}
+
+.finance-cta {
+  max-width: var(--max-width);
+}
+
 .badge {
   display: inline-block;
   background: rgba(212, 175, 55, 0.12);

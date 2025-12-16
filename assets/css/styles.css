@@ -310,19 +310,6 @@ h2, h3, h4 {
   margin: 0 auto;
 }
 
-.assemblea-box {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.assemblea-box .note {
-  margin-top: 14px;
-  color: var(--secondary-text);
-  font-size: 15px;
-  opacity: 0.85;
-}
-
 .accordion {
   max-width: var(--max-width);
   margin: 0 auto;

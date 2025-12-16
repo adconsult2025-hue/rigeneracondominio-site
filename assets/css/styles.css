@@ -106,10 +106,24 @@ a:hover {
   align-items: center;
 }
 
+.simple-hero h1 {
+  max-width: 720px;
+}
+
+.landing {
+  padding-top: 140px;
+}
+
 .hero-copy .note {
   color: var(--secondary-text);
   margin: 12px 0 0;
   font-size: 14px;
+}
+
+.pillars {
+  color: var(--secondary-text);
+  margin: 14px 0 22px;
+  font-weight: 600;
 }
 
 .hero-media {
@@ -142,6 +156,18 @@ a:hover {
   position: absolute;
   inset: 0;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.15));
+}
+
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+.image-duo .image-frame {
+  min-height: 220px;
 }
 
 .sub-hero {
@@ -191,30 +217,69 @@ h2, h3, h4 {
   z-index: 10;
 }
 
-.logo {
+.brand-cluster {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo-link {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-weight: 700;
+  gap: 12px;
+  color: var(--text);
+}
+
+.logo-link:hover {
+  color: var(--text);
 }
 
 .logo-mark {
-  height: 24px;
-  width: auto;
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
   display: inline-block;
   filter: saturate(0.9) contrast(1.05) brightness(0.95);
+  background: var(--panel);
+  padding: 6px;
+  border: 1px solid var(--border);
 }
 
 .logo-text {
   display: flex;
   flex-direction: column;
   line-height: 1.2;
+  gap: 4px;
 }
 
-.logo .sub-brand {
+.logo-text .sub-brand {
   font-size: 12px;
-  color: var(--gold);
+  color: var(--secondary-text);
   font-weight: 600;
+}
+
+.powered {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--secondary-text);
+  font-size: 12px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+}
+
+.powered-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  padding: 4px;
+}
+
+.powered-name {
+  color: var(--secondary-text);
+  font-weight: 700;
 }
 
 .main-nav ul {
@@ -286,6 +351,10 @@ h2, h3, h4 {
   gap: 18px;
   max-width: var(--max-width);
   margin: 0 auto;
+}
+
+.card-grid.compact-grid {
+  gap: 14px;
 }
 
 .card {
@@ -629,7 +698,7 @@ input:focus, textarea:focus, select:focus {
 
   .main-nav {
     position: absolute;
-    top: 64px;
+    top: 78px;
     right: 20px;
     background: var(--panel);
     border: 1px solid var(--border);
@@ -663,5 +732,14 @@ input:focus, textarea:focus, select:focus {
 
   .hero, .sub-hero {
     padding-top: 110px;
+  }
+
+  .brand-cluster {
+    gap: 10px;
+  }
+
+  .logo-mark {
+    width: 52px;
+    height: 52px;
   }
 }

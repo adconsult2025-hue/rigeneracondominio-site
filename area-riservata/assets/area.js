@@ -1,7 +1,6 @@
 /**
- * Rigenera Condominio – Area Riservata (Invite-only via Netlify Identity)
- * - No open signup from UI (invite-only enforced in Netlify settings).
- * - Guard pages: requires logged-in Identity user.
+ * Rigenera Condominio – Area Riservata (auth via SPA login)
+ * - Guard pages: requires logged-in user.
  * - Wizard: Condominio-only (no target selection).
  * - Stores evaluations locally. Later: POST to platform.
  */
@@ -14,16 +13,20 @@ function saveState(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
 
 export function getUser(){
   const s = loadState();
-  if(s.user) return s.user;
-  if(window.netlifyIdentity){
-    const u = window.netlifyIdentity.currentUser();
-    if(u){
-      const user = { id:u.id, email:u.email, name:(u.user_metadata && (u.user_metadata.full_name || u.user_metadata.name)) || u.email };
-      s.user = user; saveState(s);
-      return user;
-    }
+  return s.user || null;
+}
+export function setUser(user){
+  const s = loadState();
+  if(user){
+    s.user = {
+      id: user.id || user.sub || user.email || null,
+      email: user.email || null,
+      name: user.name || user.email || null
+    };
+  }else{
+    delete s.user;
   }
-  return null;
+  saveState(s);
 }
 export function clearUser(){ const s = loadState(); delete s.user; saveState(s); }
 
@@ -31,35 +34,6 @@ export function mountTopbar(){
   const user = getUser();
   const el = document.querySelector("#whoami");
   if(el) el.textContent = user ? (user.name || user.email) : "Ospite";
-}
-
-export function wireIdentity(){
-  const btnLogin = document.querySelector("[data-action='login']");
-  const btnLogout = document.querySelector("[data-action='logout']");
-
-  const has = !!window.netlifyIdentity;
-  const open = ()=>{ if(has) window.netlifyIdentity.open("login"); };
-
-  if(btnLogin) btnLogin.addEventListener("click", open);
-  if(btnLogout) btnLogout.addEventListener("click", ()=>{
-    if(has) window.netlifyIdentity.logout();
-    clearUser();
-    location.href="./index.html";
-  });
-
-  if(has){
-    window.netlifyIdentity.on("login", () => {
-      // refresh user cache
-      const s = loadState();
-      delete s.user; saveState(s);
-      window.netlifyIdentity.close();
-      location.href="./dashboard.html";
-    });
-    window.netlifyIdentity.on("logout", () => {
-      clearUser();
-      location.href="./index.html";
-    });
-  }
 }
 
 export function guardPage(){

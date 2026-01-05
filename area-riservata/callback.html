@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Accesso…</title>
+</head>
+<body>
+  <script src="https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js"></script>
+  <script type="module">
+    import { handleCallback, getAuth0 } from "./assets/auth0-client.js";
+
+    async function run(){
+      try {
+        await getAuth0();
+        const res = await handleCallback();
+        const target = (res && res.appState && res.appState.targetUrl) ? res.appState.targetUrl : "/area-riservata/dashboard.html";
+        window.location.replace(target);
+      } catch (e) {
+        // fallback: vai comunque in area riservata
+        window.location.replace("/area-riservata/");
+      }
+    }
+    run();
+  </script>
+</body>
+</html>

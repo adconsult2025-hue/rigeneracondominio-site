@@ -17,7 +17,7 @@
         </div>
       </div>
       <div class="actions">
-        <span class="badge" title="Utente"><span class="dot"></span><span id="whoami">Ospite</span></span>
+        <span class="badge" title="Utente"><span class="dot"></span><span id="whoami" data-user-name>Ospite</span></span>
         <button class="btn" data-action="login">Accedi</button>
         <button class="btn danger" data-action="logout" style="display:none">Esci</button>
       </div>
@@ -68,70 +68,107 @@
 
   </div>
 
-  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <script src="https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js"></script>
   <script type="module">
-    import { mountTopbar, wireIdentity, getUser } from './assets/area.js';
-    wireIdentity();
-    mountTopbar();
-    const user = getUser();
-    const logoutBtn = document.querySelector("[data-action='logout']");
-    const loginBtn = document.querySelector("[data-action='login']");
-    if(user){
-      logoutBtn.style.display = '';
-      loginBtn.style.display = 'none';
+    import { isAuthed, login } from "./assets/auth0-client.js";
+    const ok = await isAuthed();
+    if (!ok) {
+      await login("/area-riservata/wizard.html");
     }
-    
-import { guardPage, getActiveRun, startNewRun, getCurrentStep, answerStep, upsertRun, computeBadge } from './assets/area.js';
-if(!guardPage()){};
-let run = getActiveRun();
-if(!run) run = startNewRun();
+  </script>
+  <script type="module">
+    import { login, logout, isAuthed, getUser as getAuthUser } from "./assets/auth0-client.js";
+    import { mountTopbar, setUser, clearUser, getActiveRun, startNewRun, getCurrentStep, answerStep, upsertRun, computeBadge } from "./assets/area.js";
 
-const qEl = document.querySelector("#stepQ");
-const metaEl = document.querySelector("#stepMeta");
-const helpEl = document.querySelector("#stepHelp");
-const sumEl = document.querySelector("#summary");
-const badgeTxt = document.querySelector("#badgeTxt");
-const badgeWrap = document.querySelector("#stepBadge");
-const notesEl = document.querySelector("#notes");
+    try { mountTopbar(); } catch(e) {}
 
-notesEl.value = run.notes || "";
-notesEl.addEventListener("input", ()=>{ run.notes = notesEl.value; upsertRun(run); render(); });
+    async function refreshUI(){
+      const ok = await isAuthed();
+      const user = ok ? await getAuthUser() : null;
 
-function render(){
-  const step = getCurrentStep();
-  metaEl.textContent = `Step: ${step.id}`;
-  qEl.textContent = step.question || "—";
-  helpEl.textContent = step.help || "";
+      if (ok) {
+        setUser({ id: user?.sub || user?.email, email: user?.email, name: user?.name || user?.email });
+      } else {
+        clearUser();
+      }
 
-  const b = computeBadge(run);
-  badgeWrap.classList.remove("ok","warn","bad");
-  badgeWrap.classList.add(b.cls);
-  badgeTxt.textContent = b.label;
+      const loginBtn = document.querySelector("[data-action='login']");
+      const logoutBtn = document.querySelector("[data-action='logout']");
 
-  sumEl.textContent = JSON.stringify({
-    id: run.id,
-    status: run.status,
-    result: run.result,
-    answers: run.answers,
-    notes: run.notes || ""
-  }, null, 2);
+      if (loginBtn) loginBtn.style.display = ok ? "none" : "";
+      if (logoutBtn) logoutBtn.style.display = ok ? "" : "none";
 
-  if(step.terminal){ location.href="./esito.html"; }
-}
-render();
+      const elEmail = document.querySelector("[data-user-email]");
+      const elName  = document.querySelector("[data-user-name]");
+      if (elEmail) elEmail.textContent = user?.email || "Ospite";
+      if (elName)  elName.textContent  = user?.name  || user?.email || "Ospite";
+    }
 
-document.querySelector("#btnYes").addEventListener("click", ()=>{
-  const step = getCurrentStep();
-  run = answerStep(step.id, true) || run;
-  if(run.status === "completed") location.href="./esito.html";
-  else render();
-});
-document.querySelector("#btnNo").addEventListener("click", ()=>{
-  const step = getCurrentStep();
-  run = answerStep(step.id, false) || run;
-  if(run.status === "completed") location.href="./esito.html";
-  else render();
-});
+    document.addEventListener("click", async (ev) => {
+      const t = ev.target.closest("[data-action]");
+      if (!t) return;
+      const act = t.getAttribute("data-action");
+      if (act === "login") {
+        ev.preventDefault();
+        await login("/area-riservata/wizard.html");
+      }
+      if (act === "logout") {
+        ev.preventDefault();
+        await logout("https://www.rigeneracondominio.it/area-riservata/");
+      }
+    });
+
+    refreshUI();
+
+    let run = getActiveRun();
+    if(!run) run = startNewRun();
+
+    const qEl = document.querySelector("#stepQ");
+    const metaEl = document.querySelector("#stepMeta");
+    const helpEl = document.querySelector("#stepHelp");
+    const sumEl = document.querySelector("#summary");
+    const badgeTxt = document.querySelector("#badgeTxt");
+    const badgeWrap = document.querySelector("#stepBadge");
+    const notesEl = document.querySelector("#notes");
+
+    notesEl.value = run.notes || "";
+    notesEl.addEventListener("input", ()=>{ run.notes = notesEl.value; upsertRun(run); render(); });
+
+    function render(){
+      const step = getCurrentStep();
+      metaEl.textContent = `Step: ${step.id}`;
+      qEl.textContent = step.question || "—";
+      helpEl.textContent = step.help || "";
+
+      const b = computeBadge(run);
+      badgeWrap.classList.remove("ok","warn","bad");
+      badgeWrap.classList.add(b.cls);
+      badgeTxt.textContent = b.label;
+
+      sumEl.textContent = JSON.stringify({
+        id: run.id,
+        status: run.status,
+        result: run.result,
+        answers: run.answers,
+        notes: run.notes || ""
+      }, null, 2);
+
+      if(step.terminal){ location.href="./esito.html"; }
+    }
+    render();
+
+    document.querySelector("#btnYes").addEventListener("click", ()=>{
+      const step = getCurrentStep();
+      run = answerStep(step.id, true) || run;
+      if(run.status === "completed") location.href="./esito.html";
+      else render();
+    });
+    document.querySelector("#btnNo").addEventListener("click", ()=>{
+      const step = getCurrentStep();
+      run = answerStep(step.id, false) || run;
+      if(run.status === "completed") location.href="./esito.html";
+      else render();
+    });
 
   </script>
 </body>

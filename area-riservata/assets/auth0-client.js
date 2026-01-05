@@ -24,7 +24,9 @@ function loadScriptOnce(src) {
     const s = document.createElement("script");
     s.src = src;
     s.async = true;
-    s.crossOrigin = "anonymous";
+    // IMPORTANT: non impostare crossOrigin qui.
+    // Su alcuni CDN l'attributo crossOrigin forza CORS e può bloccare lo script
+    // se il server non invia Access-Control-Allow-Origin.
     s.onload = () => { s.dataset.loaded = "1"; resolve(true); };
     s.onerror = (e) => reject(new Error(`Impossibile caricare SDK Auth0 da: ${src}`));
     document.head.appendChild(s);

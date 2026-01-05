@@ -88,21 +88,17 @@
 
     if (invite) {
       sessionStorage.removeItem("netlify_invite_token");
+      window.__netlifyOpenMode = "signup";
       window.location.hash = "invite_token=" + invite;
     } else if (recovery) {
       sessionStorage.removeItem("netlify_recovery_token");
+      window.__netlifyOpenMode = "recovery";
       window.location.hash = "recovery_token=" + recovery;
-    }
-
-    if (window.netlifyIdentity) {
+    } else {
+      // se il token è già nell'hash, prepara comunque la modalità
       var h = window.location.hash || "";
-      if (h.indexOf("invite_token=") !== -1) {
-        window.__handledNetlifyIdentityToken = true;
-        window.netlifyIdentity.open("signup");
-      } else if (h.indexOf("recovery_token=") !== -1) {
-        window.__handledNetlifyIdentityToken = true;
-        window.netlifyIdentity.open("recovery");
-      }
+      if (h.indexOf("invite_token=") !== -1) window.__netlifyOpenMode = "signup";
+      else if (h.indexOf("recovery_token=") !== -1) window.__netlifyOpenMode = "recovery";
     }
   })();
   </script>
@@ -110,6 +106,26 @@
     import { mountTopbar, wireIdentity, getUser } from './assets/area.js';
     wireIdentity();
     mountTopbar();
+
+    if (window.netlifyIdentity) {
+      window.netlifyIdentity.on("init", function () {
+        if (window.__netlifyOpenMode && !window.__handledNetlifyIdentityToken) {
+          window.__handledNetlifyIdentityToken = true;
+          window.netlifyIdentity.open(window.__netlifyOpenMode);
+        }
+      });
+
+      // forza init se non ancora inizializzato
+      try { window.netlifyIdentity.init(); } catch (e) {}
+
+      // fallback: se init è già passato, prova ad aprire dopo un tick
+      setTimeout(function () {
+        if (window.__netlifyOpenMode && !window.__handledNetlifyIdentityToken) {
+          window.__handledNetlifyIdentityToken = true;
+          window.netlifyIdentity.open(window.__netlifyOpenMode);
+        }
+      }, 0);
+    }
 
     // Se la pagina viene aperta da un invito Netlify Identity (invite_token nell'hash),
     // apri automaticamente il flusso di accettazione invito / impostazione password.

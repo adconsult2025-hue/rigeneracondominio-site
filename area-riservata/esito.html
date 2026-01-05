@@ -17,7 +17,7 @@
         </div>
       </div>
       <div class="actions">
-        <span class="badge" title="Utente"><span class="dot"></span><span id="whoami">Ospite</span></span>
+        <span class="badge" title="Utente"><span class="dot"></span><span id="whoami" data-user-name>Ospite</span></span>
         <button class="btn" data-action="login">Accedi</button>
         <button class="btn danger" data-action="logout" style="display:none">Esci</button>
       </div>
@@ -52,74 +52,111 @@
 
   </div>
 
-  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <script src="https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js"></script>
   <script type="module">
-    import { mountTopbar, wireIdentity, getUser } from './assets/area.js';
-    wireIdentity();
-    mountTopbar();
-    const user = getUser();
-    const logoutBtn = document.querySelector("[data-action='logout']");
-    const loginBtn = document.querySelector("[data-action='login']");
-    if(user){
-      logoutBtn.style.display = '';
-      loginBtn.style.display = 'none';
+    import { isAuthed, login } from "./assets/auth0-client.js";
+    const ok = await isAuthed();
+    if (!ok) {
+      await login("/area-riservata/esito.html");
     }
-    
-import { guardPage, getActiveRun, computeBadge } from './assets/area.js';
-if(!guardPage()){};
-const run = getActiveRun();
-if(!run) location.href="./dashboard.html";
+  </script>
+  <script type="module">
+    import { login, logout, isAuthed, getUser as getAuthUser } from "./assets/auth0-client.js";
+    import { mountTopbar, setUser, clearUser, getActiveRun, computeBadge } from "./assets/area.js";
 
-const b = computeBadge(run);
-const badge = document.querySelector("#badge");
-badge.classList.remove("ok","warn","bad");
-badge.classList.add(b.cls);
-document.querySelector("#badgeTxt").textContent = b.label;
+    try { mountTopbar(); } catch(e) {}
 
-document.querySelector("#sum").textContent = JSON.stringify(run, null, 2);
+    async function refreshUI(){
+      const ok = await isAuthed();
+      const user = ok ? await getAuthUser() : null;
 
-const cta = document.querySelector("#cta");
-const next = document.querySelector("#nextSteps");
+      if (ok) {
+        setUser({ id: user?.sub || user?.email, email: user?.email, name: user?.name || user?.email });
+      } else {
+        clearUser();
+      }
 
-function li(items){ return "<ol>" + items.map(x=>`<li>${x}</li>`).join("") + "</ol>"; }
+      const loginBtn = document.querySelector("[data-action='login']");
+      const logoutBtn = document.querySelector("[data-action='logout']");
 
-if(run.status !== "completed"){
-  cta.innerHTML = `<a class="btn gold" href="./wizard.html">Completa valutazione</a>`;
-  next.innerHTML = "Completa il wizard per ottenere l’esito.";
-}else if(run.result === "stop_title"){
-  cta.innerHTML = `<a class="btn" href="/contatti">Richiedi un confronto</a>`;
-  next.innerHTML = li([
-    "Integrare titolo/poteri (visure, procura, mandato, ecc.)",
-    "Valutare alternative praticabili e perimetro d’intervento"
-  ]);
-}else if(run.result === "stop_delibera"){
-  cta.innerHTML = `<a class="btn" href="/contatti">Supporto per istruttoria assembleare</a>`;
-  next.innerHTML = li([
-    "Preparare percorso informativo e materiali assembleari",
-    "Ripetere valutazione dopo consenso"
-  ]);
-}else if(run.result === "efficiency"){
-  cta.innerHTML = `<a class="btn gold" href="./attiva.html">Attiva analisi assistita</a>`;
-  next.innerHTML = li([
-    "Sopralluogo tecnico minimo",
-    "Percorso alternativo (light/detrazioni) o sola CER se compatibile"
-  ]);
-}else if(run.result === "limited"){
-  cta.innerHTML = `<a class="btn gold" href="./attiva.html">Attiva (a pagamento)</a> <a class="btn secondary" href="/contatti">Analisi assistita</a>`;
-  next.innerHTML = li([
-    "Validazione requisiti e documenti",
-    "Scelta governance completa per fase operativa"
-  ]);
-}else if(run.result === "green"){
-  cta.innerHTML = `<a class="btn gold" href="./attiva.html">Attiva progetto</a>`;
-  next.innerHTML = li([
-    "Attivazione in piattaforma (contratti + governance)",
-    "Checklist documentale e piano CT/CER/Finanza"
-  ]);
-}else{
-  cta.innerHTML = `<a class="btn gold" href="./attiva.html">Attiva</a>`;
-  next.innerHTML = "—";
-}
+      if (loginBtn) loginBtn.style.display = ok ? "none" : "";
+      if (logoutBtn) logoutBtn.style.display = ok ? "" : "none";
+
+      const elEmail = document.querySelector("[data-user-email]");
+      const elName  = document.querySelector("[data-user-name]");
+      if (elEmail) elEmail.textContent = user?.email || "Ospite";
+      if (elName)  elName.textContent  = user?.name  || user?.email || "Ospite";
+    }
+
+    document.addEventListener("click", async (ev) => {
+      const t = ev.target.closest("[data-action]");
+      if (!t) return;
+      const act = t.getAttribute("data-action");
+      if (act === "login") {
+        ev.preventDefault();
+        await login("/area-riservata/esito.html");
+      }
+      if (act === "logout") {
+        ev.preventDefault();
+        await logout("https://www.rigeneracondominio.it/area-riservata/");
+      }
+    });
+
+    refreshUI();
+
+    const run = getActiveRun();
+    if(!run) location.href="./dashboard.html";
+
+    const b = computeBadge(run);
+    const badge = document.querySelector("#badge");
+    badge.classList.remove("ok","warn","bad");
+    badge.classList.add(b.cls);
+    document.querySelector("#badgeTxt").textContent = b.label;
+
+    document.querySelector("#sum").textContent = JSON.stringify(run, null, 2);
+
+    const cta = document.querySelector("#cta");
+    const next = document.querySelector("#nextSteps");
+
+    function li(items){ return "<ol>" + items.map(x=>`<li>${x}</li>`).join("") + "</ol>"; }
+
+    if(run.status !== "completed"){
+      cta.innerHTML = `<a class="btn gold" href="./wizard.html">Completa valutazione</a>`;
+      next.innerHTML = "Completa il wizard per ottenere l’esito.";
+    }else if(run.result === "stop_title"){
+      cta.innerHTML = `<a class="btn" href="/contatti">Richiedi un confronto</a>`;
+      next.innerHTML = li([
+        "Integrare titolo/poteri (visure, procura, mandato, ecc.)",
+        "Valutare alternative praticabili e perimetro d’intervento"
+      ]);
+    }else if(run.result === "stop_delibera"){
+      cta.innerHTML = `<a class="btn" href="/contatti">Supporto per istruttoria assembleare</a>`;
+      next.innerHTML = li([
+        "Preparare percorso informativo e materiali assembleari",
+        "Ripetere valutazione dopo consenso"
+      ]);
+    }else if(run.result === "efficiency"){
+      cta.innerHTML = `<a class="btn gold" href="./attiva.html">Attiva analisi assistita</a>`;
+      next.innerHTML = li([
+        "Sopralluogo tecnico minimo",
+        "Percorso alternativo (light/detrazioni) o sola CER se compatibile"
+      ]);
+    }else if(run.result === "limited"){
+      cta.innerHTML = `<a class="btn gold" href="./attiva.html">Attiva (a pagamento)</a> <a class="btn secondary" href="/contatti">Analisi assistita</a>`;
+      next.innerHTML = li([
+        "Validazione requisiti e documenti",
+        "Scelta governance completa per fase operativa"
+      ]);
+    }else if(run.result === "green"){
+      cta.innerHTML = `<a class="btn gold" href="./attiva.html">Attiva progetto</a>`;
+      next.innerHTML = li([
+        "Attivazione in piattaforma (contratti + governance)",
+        "Checklist documentale e piano CT/CER/Finanza"
+      ]);
+    }else{
+      cta.innerHTML = `<a class="btn gold" href="./attiva.html">Attiva</a>`;
+      next.innerHTML = "—";
+    }
 
   </script>
 </body>

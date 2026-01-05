@@ -17,7 +17,7 @@
         </div>
       </div>
       <div class="actions">
-        <span class="badge" title="Utente"><span class="dot"></span><span id="whoami">Ospite</span></span>
+        <span class="badge" title="Utente"><span class="dot"></span><span id="whoami" data-user-name>Ospite</span></span>
         <button class="btn" data-action="login">Accedi</button>
         <button class="btn danger" data-action="logout" style="display:none">Esci</button>
       </div>
@@ -69,53 +69,90 @@
 
   </div>
 
-  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <script src="https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js"></script>
   <script type="module">
-    import { mountTopbar, wireIdentity, getUser } from './assets/area.js';
-    wireIdentity();
-    mountTopbar();
-    const user = getUser();
-    const logoutBtn = document.querySelector("[data-action='logout']");
-    const loginBtn = document.querySelector("[data-action='login']");
-    if(user){
-      logoutBtn.style.display = '';
-      loginBtn.style.display = 'none';
+    import { isAuthed, login } from "./assets/auth0-client.js";
+    const ok = await isAuthed();
+    if (!ok) {
+      await login("/area-riservata/attiva.html");
     }
-    
-import { guardPage, getActiveRun } from './assets/area.js';
-if(!guardPage()){};
-const run = getActiveRun();
-if(!run) location.href="./dashboard.html";
+  </script>
+  <script type="module">
+    import { login, logout, isAuthed, getUser as getAuthUser } from "./assets/auth0-client.js";
+    import { mountTopbar, setUser, clearUser, getActiveRun } from "./assets/area.js";
 
-const cards = Array.from(document.querySelectorAll("[data-pack]"));
-let pack = null;
-cards.forEach(c=>{
-  c.addEventListener("click", ()=>{
-    cards.forEach(x=>x.classList.remove("selected"));
-    c.classList.add("selected");
-    pack = c.getAttribute("data-pack");
-  });
-});
+    try { mountTopbar(); } catch(e) {}
 
-document.querySelector("#btnSend").addEventListener("click", ()=>{
-  const email = document.querySelector("#email").value.trim();
-  const msg = document.querySelector("#msg").value.trim();
-  const status = document.querySelector("#status");
-  if(!pack){ status.textContent = "Seleziona un pacchetto."; return; }
-  if(!email){ status.textContent = "Inserisci un’email valida."; return; }
+    async function refreshUI(){
+      const ok = await isAuthed();
+      const user = ok ? await getAuthUser() : null;
 
-  // Fill Netlify form hidden fields and submit
-  document.querySelector("#f_pack").value = pack;
-  document.querySelector("#f_email").value = email;
-  document.querySelector("#f_msg").value = msg;
-  document.querySelector("#f_run").value = JSON.stringify(run);
+      if (ok) {
+        setUser({ id: user?.sub || user?.email, email: user?.email, name: user?.name || user?.email });
+      } else {
+        clearUser();
+      }
 
-  const form = document.querySelector("form[name='attivazione-progetto-condominio']");
-  const data = new FormData(form);
-  fetch("/", { method:"POST", body: data })
-    .then(()=>{ status.textContent = "Richiesta inviata. Ti ricontatteremo a breve."; })
-    .catch(()=>{ status.textContent = "Errore invio richiesta. Riprova o contattaci."; });
-});
+      const loginBtn = document.querySelector("[data-action='login']");
+      const logoutBtn = document.querySelector("[data-action='logout']");
+
+      if (loginBtn) loginBtn.style.display = ok ? "none" : "";
+      if (logoutBtn) logoutBtn.style.display = ok ? "" : "none";
+
+      const elEmail = document.querySelector("[data-user-email]");
+      const elName  = document.querySelector("[data-user-name]");
+      if (elEmail) elEmail.textContent = user?.email || "Ospite";
+      if (elName)  elName.textContent  = user?.name  || user?.email || "Ospite";
+    }
+
+    document.addEventListener("click", async (ev) => {
+      const t = ev.target.closest("[data-action]");
+      if (!t) return;
+      const act = t.getAttribute("data-action");
+      if (act === "login") {
+        ev.preventDefault();
+        await login("/area-riservata/attiva.html");
+      }
+      if (act === "logout") {
+        ev.preventDefault();
+        await logout("https://www.rigeneracondominio.it/area-riservata/");
+      }
+    });
+
+    refreshUI();
+
+    const run = getActiveRun();
+    if(!run) location.href="./dashboard.html";
+
+    const cards = Array.from(document.querySelectorAll("[data-pack]"));
+    let pack = null;
+    cards.forEach(c=>{
+      c.addEventListener("click", ()=>{
+        cards.forEach(x=>x.classList.remove("selected"));
+        c.classList.add("selected");
+        pack = c.getAttribute("data-pack");
+      });
+    });
+
+    document.querySelector("#btnSend").addEventListener("click", ()=>{
+      const email = document.querySelector("#email").value.trim();
+      const msg = document.querySelector("#msg").value.trim();
+      const status = document.querySelector("#status");
+      if(!pack){ status.textContent = "Seleziona un pacchetto."; return; }
+      if(!email){ status.textContent = "Inserisci un’email valida."; return; }
+
+      // Fill form hidden fields and submit
+      document.querySelector("#f_pack").value = pack;
+      document.querySelector("#f_email").value = email;
+      document.querySelector("#f_msg").value = msg;
+      document.querySelector("#f_run").value = JSON.stringify(run);
+
+      const form = document.querySelector("form[name='attivazione-progetto-condominio']");
+      const data = new FormData(form);
+      fetch("/", { method:"POST", body: data })
+        .then(()=>{ status.textContent = "Richiesta inviata. Ti ricontatteremo a breve."; })
+        .catch(()=>{ status.textContent = "Errore invio richiesta. Riprova o contattaci."; });
+    });
 
   </script>
 </body>

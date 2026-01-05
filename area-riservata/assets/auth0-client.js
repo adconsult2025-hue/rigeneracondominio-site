@@ -36,11 +36,9 @@ function loadScriptOnce(src) {
 async function ensureAuth0SdkLoaded() {
   if (window.createAuth0Client) return true;
 
-  // Prova CDN ufficiale, poi fallback su unpkg
-  const sources = [
-    "https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js",
-    "https://unpkg.com/@auth0/auth0-spa-js@2.0.3/dist/auth0-spa-js.production.js"
-  ];
+  // SOLO locale (same-origin) per evitare qualsiasi blocco CORS/policy su CDN esterni
+  const local = `${window.location.origin}/area-riservata/assets/vendor/auth0-spa-js.production.js`;
+  const sources = [ local ];
 
   let lastErr = null;
   for (const src of sources) {

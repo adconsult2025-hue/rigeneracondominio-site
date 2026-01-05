@@ -39,6 +39,7 @@
         <li><a href="come-funziona.html">Come funziona</a></li>
         <li><a href="faq.html" aria-current="page">FAQ</a></li>
         <li><a href="contatti.html">Contatti</a></li>
+        <li><a href="area-riservata/" rel="nofollow">Area riservata</a></li>
       </ul>
     </nav>
     <div class="header-cta">
@@ -179,6 +180,19 @@
     </div>
     <p class="copyright">© 2025 Rigenera Condominio – Powered by DA² S.p.A. Benefit. Tutti i diritti riservati.</p>
   </footer>
+
+  <!-- Netlify Identity invite/recovery bridge:
+       Netlify spesso apre i link di invito/reset sulla root con #invite_token / #recovery_token.
+       Questo redirect porta l'utente nell'area riservata mantenendo l'hash, dove il widget
+       potrà completare il set password / recovery. -->
+  <script>
+    (function () {
+      var h = window.location.hash || "";
+      if (h.indexOf("invite_token") !== -1 || h.indexOf("recovery_token") !== -1) {
+        window.location.replace("/area-riservata/index.html" + h);
+      }
+    })();
+  </script>
 
   <script src="assets/js/main.js"></script>
 </body>

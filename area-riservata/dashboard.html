@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="./assets/area.css" />
 </head>
 <body>
+  <script src="./assets/vendor/auth0-spa-js.production.js"></script>
   <script type="module">
     import { isAuthed, login } from "./assets/auth0-client.js";
     const ok = await isAuthed();

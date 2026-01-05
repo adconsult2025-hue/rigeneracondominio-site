@@ -81,6 +81,31 @@
   </div>
 
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <script>
+  (function () {
+    var invite = sessionStorage.getItem("netlify_invite_token");
+    var recovery = sessionStorage.getItem("netlify_recovery_token");
+
+    if (invite) {
+      sessionStorage.removeItem("netlify_invite_token");
+      window.location.hash = "invite_token=" + invite;
+    } else if (recovery) {
+      sessionStorage.removeItem("netlify_recovery_token");
+      window.location.hash = "recovery_token=" + recovery;
+    }
+
+    if (window.netlifyIdentity) {
+      var h = window.location.hash || "";
+      if (h.indexOf("invite_token=") !== -1) {
+        window.__handledNetlifyIdentityToken = true;
+        window.netlifyIdentity.open("signup");
+      } else if (h.indexOf("recovery_token=") !== -1) {
+        window.__handledNetlifyIdentityToken = true;
+        window.netlifyIdentity.open("recovery");
+      }
+    }
+  })();
+  </script>
   <script type="module">
     import { mountTopbar, wireIdentity, getUser } from './assets/area.js';
     wireIdentity();
@@ -89,7 +114,7 @@
     // Se la pagina viene aperta da un invito Netlify Identity (invite_token nell'hash),
     // apri automaticamente il flusso di accettazione invito / impostazione password.
     // Gestiamo anche il reset password (recovery_token) per completezza.
-    if (window.netlifyIdentity) {
+    if (window.netlifyIdentity && !window.__handledNetlifyIdentityToken) {
       const h = window.location.hash || "";
       if (h.includes("invite_token")) {
         window.netlifyIdentity.open("signup");

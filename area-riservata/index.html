@@ -86,19 +86,33 @@
     var invite = sessionStorage.getItem("netlify_invite_token");
     var recovery = sessionStorage.getItem("netlify_recovery_token");
 
+    // Costruiamo una URL "pulita" senza hash e usiamo querystring per preservare i token.
+    var url = new URL(window.location.href);
+    url.hash = "";
+
     if (invite) {
       sessionStorage.removeItem("netlify_invite_token");
       window.__netlifyOpenMode = "signup";
-      window.location.hash = "invite_token=" + invite;
+      url.searchParams.set("invite_token", invite);
+      url.searchParams.delete("recovery_token");
+      history.replaceState(null, "", url.toString());
     } else if (recovery) {
       sessionStorage.removeItem("netlify_recovery_token");
       window.__netlifyOpenMode = "recovery";
-      window.location.hash = "recovery_token=" + recovery;
+      url.searchParams.set("recovery_token", recovery);
+      url.searchParams.delete("invite_token");
+      history.replaceState(null, "", url.toString());
     } else {
-      // se il token è già nell'hash, prepara comunque la modalità
-      var h = window.location.hash || "";
-      if (h.indexOf("invite_token=") !== -1) window.__netlifyOpenMode = "signup";
-      else if (h.indexOf("recovery_token=") !== -1) window.__netlifyOpenMode = "recovery";
+      // Se il token è già presente nell'URL, deduci la modalità da querystring (preferita) o hash (fallback).
+      var qi = url.searchParams.get("invite_token");
+      var qr = url.searchParams.get("recovery_token");
+      if (qi) window.__netlifyOpenMode = "signup";
+      else if (qr) window.__netlifyOpenMode = "recovery";
+      else {
+        var h = window.location.hash || "";
+        if (h.indexOf("invite_token=") !== -1) window.__netlifyOpenMode = "signup";
+        else if (h.indexOf("recovery_token=") !== -1) window.__netlifyOpenMode = "recovery";
+      }
     }
   })();
   </script>

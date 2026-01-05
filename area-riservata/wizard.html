@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Rigenera Condominio • Valutazione</title>
+  <link rel="stylesheet" href="./assets/area.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div class="title">Rigenera Condominio</div>
+          <div class="subtitle">Area Riservata • Condomini</div>
+        </div>
+      </div>
+      <div class="actions">
+        <span class="badge" title="Utente"><span class="dot"></span><span id="whoami">Ospite</span></span>
+        <button class="btn" data-action="login">Accedi</button>
+        <button class="btn danger" data-action="logout" style="display:none">Esci</button>
+      </div>
+    </div>
+    
+<div class="grid">
+  <div class="card">
+    <h1>Valutazione guidata (Condominio)</h1>
+    <p>Rispondi alle domande SI/NO. Ogni risposta determina il passo successivo.</p>
+    <div class="hr"></div>
+
+    <div class="step">
+      <div>
+        <div class="meta" id="stepMeta">Step</div>
+        <div class="q" id="stepQ">…</div>
+      </div>
+      <div class="badge" id="stepBadge"><span class="dot"></span><span id="badgeTxt">In corso</span></div>
+    </div>
+
+    <div id="stepHelp" class="footer-note"></div>
+
+    <div id="stepYN" class="yn">
+      <button class="btn gold" id="btnYes">Sì</button>
+      <button class="btn secondary" id="btnNo">No</button>
+    </div>
+
+    <div class="hr"></div>
+    <label for="notes">Note (opzionale)</label>
+    <textarea id="notes" placeholder="Es. vincoli, obiettivi, dettagli utili…"></textarea>
+    <small class="help">Le note saranno trasferite in piattaforma quando attivi il progetto.</small>
+
+    <div class="hr"></div>
+    <div class="actions">
+      <a class="btn secondary" href="./dashboard.html">Dashboard</a>
+      <a class="btn" href="./esito.html">Esito</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Riepilogo tecnico</h2>
+    <p>Anteprima delle risposte raccolte (utile per controllo interno).</p>
+    <div class="hr"></div>
+    <pre class="mono" id="summary">—</pre>
+    <div class="hr"></div>
+    <div class="notice">Compatibilità CER/CEC e CT 3.0 si confermano con verifica documentale in piattaforma.</div>
+  </div>
+</div>
+
+  </div>
+
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <script type="module">
+    import { mountTopbar, wireIdentity, getUser } from './assets/area.js';
+    wireIdentity();
+    mountTopbar();
+    const user = getUser();
+    const logoutBtn = document.querySelector("[data-action='logout']");
+    const loginBtn = document.querySelector("[data-action='login']");
+    if(user){
+      logoutBtn.style.display = '';
+      loginBtn.style.display = 'none';
+    }
+    
+import { guardPage, getActiveRun, startNewRun, getCurrentStep, answerStep, upsertRun, computeBadge } from './assets/area.js';
+if(!guardPage()){};
+let run = getActiveRun();
+if(!run) run = startNewRun();
+
+const qEl = document.querySelector("#stepQ");
+const metaEl = document.querySelector("#stepMeta");
+const helpEl = document.querySelector("#stepHelp");
+const sumEl = document.querySelector("#summary");
+const badgeTxt = document.querySelector("#badgeTxt");
+const badgeWrap = document.querySelector("#stepBadge");
+const notesEl = document.querySelector("#notes");
+
+notesEl.value = run.notes || "";
+notesEl.addEventListener("input", ()=>{ run.notes = notesEl.value; upsertRun(run); render(); });
+
+function render(){
+  const step = getCurrentStep();
+  metaEl.textContent = `Step: ${step.id}`;
+  qEl.textContent = step.question || "—";
+  helpEl.textContent = step.help || "";
+
+  const b = computeBadge(run);
+  badgeWrap.classList.remove("ok","warn","bad");
+  badgeWrap.classList.add(b.cls);
+  badgeTxt.textContent = b.label;
+
+  sumEl.textContent = JSON.stringify({
+    id: run.id,
+    status: run.status,
+    result: run.result,
+    answers: run.answers,
+    notes: run.notes || ""
+  }, null, 2);
+
+  if(step.terminal){ location.href="./esito.html"; }
+}
+render();
+
+document.querySelector("#btnYes").addEventListener("click", ()=>{
+  const step = getCurrentStep();
+  run = answerStep(step.id, true) || run;
+  if(run.status === "completed") location.href="./esito.html";
+  else render();
+});
+document.querySelector("#btnNo").addEventListener("click", ()=>{
+  const step = getCurrentStep();
+  run = answerStep(step.id, false) || run;
+  if(run.status === "completed") location.href="./esito.html";
+  else render();
+});
+
+  </script>
+</body>
+</html>

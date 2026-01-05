@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Rigenera Condominio • Esito</title>
+  <link rel="stylesheet" href="./assets/area.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div class="title">Rigenera Condominio</div>
+          <div class="subtitle">Area Riservata • Condomini</div>
+        </div>
+      </div>
+      <div class="actions">
+        <span class="badge" title="Utente"><span class="dot"></span><span id="whoami">Ospite</span></span>
+        <button class="btn" data-action="login">Accedi</button>
+        <button class="btn danger" data-action="logout" style="display:none">Esci</button>
+      </div>
+    </div>
+    
+<div class="grid">
+  <div class="card">
+    <h1>Esito preliminare (Condominio)</h1>
+    <p>Esito motivato. Per passare alla fase operativa, si attiva il progetto in piattaforma.</p>
+    <div class="hr"></div>
+
+    <div id="badge" class="badge warn"><span class="dot"></span><span id="badgeTxt">—</span></div>
+    <div class="hr"></div>
+
+    <h2>Riepilogo</h2>
+    <pre class="mono" id="sum">—</pre>
+
+    <div class="hr"></div>
+    <h2>CTA</h2>
+    <div id="cta" class="actions">—</div>
+
+    <div class="footer-note">Nota: la valutazione è preliminare e non vincolante.</div>
+  </div>
+
+  <div class="card">
+    <h2>Prossimi passi</h2>
+    <div class="notice" id="nextSteps">—</div>
+    <div class="hr"></div>
+    <a class="btn secondary" href="./wizard.html">Rivedi risposte</a>
+  </div>
+</div>
+
+  </div>
+
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <script type="module">
+    import { mountTopbar, wireIdentity, getUser } from './assets/area.js';
+    wireIdentity();
+    mountTopbar();
+    const user = getUser();
+    const logoutBtn = document.querySelector("[data-action='logout']");
+    const loginBtn = document.querySelector("[data-action='login']");
+    if(user){
+      logoutBtn.style.display = '';
+      loginBtn.style.display = 'none';
+    }
+    
+import { guardPage, getActiveRun, computeBadge } from './assets/area.js';
+if(!guardPage()){};
+const run = getActiveRun();
+if(!run) location.href="./dashboard.html";
+
+const b = computeBadge(run);
+const badge = document.querySelector("#badge");
+badge.classList.remove("ok","warn","bad");
+badge.classList.add(b.cls);
+document.querySelector("#badgeTxt").textContent = b.label;
+
+document.querySelector("#sum").textContent = JSON.stringify(run, null, 2);
+
+const cta = document.querySelector("#cta");
+const next = document.querySelector("#nextSteps");
+
+function li(items){ return "<ol>" + items.map(x=>`<li>${x}</li>`).join("") + "</ol>"; }
+
+if(run.status !== "completed"){
+  cta.innerHTML = `<a class="btn gold" href="./wizard.html">Completa valutazione</a>`;
+  next.innerHTML = "Completa il wizard per ottenere l’esito.";
+}else if(run.result === "stop_title"){
+  cta.innerHTML = `<a class="btn" href="/contatti">Richiedi un confronto</a>`;
+  next.innerHTML = li([
+    "Integrare titolo/poteri (visure, procura, mandato, ecc.)",
+    "Valutare alternative praticabili e perimetro d’intervento"
+  ]);
+}else if(run.result === "stop_delibera"){
+  cta.innerHTML = `<a class="btn" href="/contatti">Supporto per istruttoria assembleare</a>`;
+  next.innerHTML = li([
+    "Preparare percorso informativo e materiali assembleari",
+    "Ripetere valutazione dopo consenso"
+  ]);
+}else if(run.result === "efficiency"){
+  cta.innerHTML = `<a class="btn gold" href="./attiva.html">Attiva analisi assistita</a>`;
+  next.innerHTML = li([
+    "Sopralluogo tecnico minimo",
+    "Percorso alternativo (light/detrazioni) o sola CER se compatibile"
+  ]);
+}else if(run.result === "limited"){
+  cta.innerHTML = `<a class="btn gold" href="./attiva.html">Attiva (a pagamento)</a> <a class="btn secondary" href="/contatti">Analisi assistita</a>`;
+  next.innerHTML = li([
+    "Validazione requisiti e documenti",
+    "Scelta governance completa per fase operativa"
+  ]);
+}else if(run.result === "green"){
+  cta.innerHTML = `<a class="btn gold" href="./attiva.html">Attiva progetto</a>`;
+  next.innerHTML = li([
+    "Attivazione in piattaforma (contratti + governance)",
+    "Checklist documentale e piano CT/CER/Finanza"
+  ]);
+}else{
+  cta.innerHTML = `<a class="btn gold" href="./attiva.html">Attiva</a>`;
+  next.innerHTML = "—";
+}
+
+  </script>
+</body>
+</html>

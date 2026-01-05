@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Rigenera Condominio • Attiva</title>
+  <link rel="stylesheet" href="./assets/area.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div class="title">Rigenera Condominio</div>
+          <div class="subtitle">Area Riservata • Condomini</div>
+        </div>
+      </div>
+      <div class="actions">
+        <span class="badge" title="Utente"><span class="dot"></span><span id="whoami">Ospite</span></span>
+        <button class="btn" data-action="login">Accedi</button>
+        <button class="btn danger" data-action="logout" style="display:none">Esci</button>
+      </div>
+    </div>
+    
+<div class="grid">
+  <div class="card">
+    <h1>Attiva progetto (Condominio)</h1>
+    <p>Seleziona il servizio per passare dalla valutazione alla fase operativa.</p>
+    <div class="hr"></div>
+
+    <h2>Pacchetti (placeholder)</h2>
+    <div class="cards" id="packs">
+      <div class="choice" data-pack="assistita"><h3>Analisi assistita</h3><p>Validazione requisiti, lista documenti, piano operativo.</p></div>
+      <div class="choice" data-pack="completa"><h3>Gestione completa</h3><p>Contratti + governance + workflow + rendicontazione.</p></div>
+    </div>
+
+    <div class="hr"></div>
+    <label>Email di contatto</label>
+    <input id="email" type="email" placeholder="amministratore@..." />
+    <label>Messaggio (opzionale)</label>
+    <textarea id="msg" placeholder="Es. numero unità, interventi desiderati, urgenza…"></textarea>
+
+    <div class="hr"></div>
+    <div class="actions">
+      <a class="btn secondary" href="./esito.html">Indietro</a>
+      <button class="btn gold" id="btnSend">Invia richiesta</button>
+    </div>
+    <div class="footer-note" id="status"></div>
+  </div>
+
+  <div class="card">
+    <h2>Operatività in piattaforma</h2>
+    <div class="notice">
+      In questa versione condominio l’attivazione registra la richiesta e prepara l’onboarding.
+      Nel passo successivo collegheremo: cliente → decision_run → pratica in piattaforma (Neon).
+    </div>
+    <div class="hr"></div>
+    <form name="attivazione-progetto-condominio" method="POST" data-netlify="true">
+      <input type="hidden" name="form-name" value="attivazione-progetto-condominio" />
+      <input type="hidden" name="pack" id="f_pack" />
+      <input type="hidden" name="email" id="f_email" />
+      <input type="hidden" name="msg" id="f_msg" />
+      <input type="hidden" name="run" id="f_run" />
+      <button class="btn secondary" type="submit" style="display:none">hidden</button>
+    </form>
+  </div>
+</div>
+
+  </div>
+
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <script type="module">
+    import { mountTopbar, wireIdentity, getUser } from './assets/area.js';
+    wireIdentity();
+    mountTopbar();
+    const user = getUser();
+    const logoutBtn = document.querySelector("[data-action='logout']");
+    const loginBtn = document.querySelector("[data-action='login']");
+    if(user){
+      logoutBtn.style.display = '';
+      loginBtn.style.display = 'none';
+    }
+    
+import { guardPage, getActiveRun } from './assets/area.js';
+if(!guardPage()){};
+const run = getActiveRun();
+if(!run) location.href="./dashboard.html";
+
+const cards = Array.from(document.querySelectorAll("[data-pack]"));
+let pack = null;
+cards.forEach(c=>{
+  c.addEventListener("click", ()=>{
+    cards.forEach(x=>x.classList.remove("selected"));
+    c.classList.add("selected");
+    pack = c.getAttribute("data-pack");
+  });
+});
+
+document.querySelector("#btnSend").addEventListener("click", ()=>{
+  const email = document.querySelector("#email").value.trim();
+  const msg = document.querySelector("#msg").value.trim();
+  const status = document.querySelector("#status");
+  if(!pack){ status.textContent = "Seleziona un pacchetto."; return; }
+  if(!email){ status.textContent = "Inserisci un’email valida."; return; }
+
+  // Fill Netlify form hidden fields and submit
+  document.querySelector("#f_pack").value = pack;
+  document.querySelector("#f_email").value = email;
+  document.querySelector("#f_msg").value = msg;
+  document.querySelector("#f_run").value = JSON.stringify(run);
+
+  const form = document.querySelector("form[name='attivazione-progetto-condominio']");
+  const data = new FormData(form);
+  fetch("/", { method:"POST", body: data })
+    .then(()=>{ status.textContent = "Richiesta inviata. Ti ricontatteremo a breve."; })
+    .catch(()=>{ status.textContent = "Errore invio richiesta. Riprova o contattaci."; });
+});
+
+  </script>
+</body>
+</html>

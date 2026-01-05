@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Rigenera Condominio • Dashboard</title>
+  <link rel="stylesheet" href="./assets/area.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div class="title">Rigenera Condominio</div>
+          <div class="subtitle">Area Riservata • Condomini</div>
+        </div>
+      </div>
+      <div class="actions">
+        <span class="badge" title="Utente"><span class="dot"></span><span id="whoami">Ospite</span></span>
+        <button class="btn" data-action="login">Accedi</button>
+        <button class="btn danger" data-action="logout" style="display:none">Esci</button>
+      </div>
+    </div>
+    
+<div class="grid">
+  <div class="card">
+    <h1>Dashboard</h1>
+    <p>Gestisci le valutazioni del condominio. Crea una nuova valutazione o riprendi l’ultima.</p>
+    <div class="hr"></div>
+    <div class="actions">
+      <button class="btn gold" id="newRun">Nuova valutazione</button>
+      <a class="btn secondary" href="./wizard.html">Riprendi</a>
+    </div>
+    <div class="hr"></div>
+    <div id="runs"></div>
+  </div>
+
+  <div class="card">
+    <h2>Nota</h2>
+    <div class="notice">
+      Questa sezione produce un esito preliminare. L’operatività (workflow, documenti, contratti) avviene in piattaforma.
+    </div>
+  </div>
+</div>
+
+  </div>
+
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <script type="module">
+    import { mountTopbar, wireIdentity, getUser } from './assets/area.js';
+    wireIdentity();
+    mountTopbar();
+    const user = getUser();
+    const logoutBtn = document.querySelector("[data-action='logout']");
+    const loginBtn = document.querySelector("[data-action='login']");
+    if(user){
+      logoutBtn.style.display = '';
+      loginBtn.style.display = 'none';
+    }
+    
+import { guardPage, getRuns, startNewRun, setActiveRunId, computeBadge } from './assets/area.js';
+if(!guardPage()){};
+const el = document.querySelector("#runs");
+
+function render(){
+  const runs = getRuns();
+  if(!runs.length){
+    el.innerHTML = `<p class="footer-note">Nessuna valutazione ancora. Clicca “Nuova valutazione”.</p>`;
+    return;
+  }
+  el.innerHTML = runs.map(r=>{
+    const b = computeBadge(r);
+    return `
+      <div class="kpi" style="margin-bottom:10px">
+        <div class="k">Valutazione • ${new Date(r.created_at).toLocaleString()}</div>
+        <div class="v" style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap">
+          <span class="badge ${b.cls}"><span class="dot"></span>${b.label}</span>
+          <span style="display:flex; gap:10px">
+            <a class="btn secondary" href="./wizard.html" data-open="${r.id}">Apri</a>
+            <a class="btn" href="./esito.html" data-esito="${r.id}">Esito</a>
+          </span>
+        </div>
+      </div>
+    `;
+  }).join("");
+  document.querySelectorAll("[data-open]").forEach(a=> a.addEventListener("click",()=> setActiveRunId(a.getAttribute("data-open"))));
+  document.querySelectorAll("[data-esito]").forEach(a=> a.addEventListener("click",()=> setActiveRunId(a.getAttribute("data-esito"))));
+}
+render();
+
+document.querySelector("#newRun").addEventListener("click", ()=>{ startNewRun(); location.href="./wizard.html"; });
+
+  </script>
+</body>
+</html>

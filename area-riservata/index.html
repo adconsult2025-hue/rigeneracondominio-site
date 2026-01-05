@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Rigenera Condominio • Area Riservata</title>
+  <link rel="stylesheet" href="./assets/area.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div class="title">Rigenera Condominio</div>
+          <div class="subtitle">Area Riservata • Condomini</div>
+        </div>
+      </div>
+      <div class="actions">
+        <span class="badge" title="Utente"><span class="dot"></span><span id="whoami">Ospite</span></span>
+        <button class="btn" data-action="login">Accedi</button>
+        <button class="btn danger" data-action="logout" style="display:none">Esci</button>
+      </div>
+    </div>
+    
+<div class="grid">
+  <div class="card">
+    <h1>Accesso riservato</h1>
+    <p>
+      Quest’area è riservata ai condomìni autorizzati e consente una <b>valutazione preliminare guidata</b>
+      (CT 3.0, CER/CEC, finanziamento) tramite un percorso <b>SI/NO</b>.
+    </p>
+    <div class="notice">
+      L’accesso è <b>solo su invito</b>. Se hai ricevuto l’abilitazione, clicca “Accedi”.
+      Se vuoi richiedere accesso, invia la richiesta tramite il modulo qui sotto.
+    </div>
+    <div class="hr"></div>
+
+    <form name="richiesta-accesso-condominio" method="POST" data-netlify="true">
+      <input type="hidden" name="form-name" value="richiesta-accesso-condominio" />
+      <div class="form-row">
+        <div>
+          <label>Nome e Cognome</label>
+          <input name="nome" required placeholder="Nome Cognome" />
+        </div>
+        <div>
+          <label>Email</label>
+          <input name="email" type="email" required placeholder="nome@email.it" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div>
+          <label>Condominio (denominazione)</label>
+          <input name="condominio" required placeholder="Condominio …" />
+        </div>
+        <div>
+          <label>Città</label>
+          <input name="citta" required placeholder="…" />
+        </div>
+      </div>
+      <label>Messaggio</label>
+      <textarea name="messaggio" placeholder="Breve descrizione esigenze, interventi, tempistiche…"></textarea>
+      <div class="hr"></div>
+      <button class="btn secondary" type="submit">Invia richiesta</button>
+      <small class="help">Riceverai risposta con eventuale invito/abilitazione.</small>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Come funziona</h2>
+    <div class="kpis">
+      <div class="kpi"><div class="k">1) Accesso su invito</div><div class="v">Netlify Identity</div></div>
+      <div class="kpi"><div class="k">2) Wizard decisionale</div><div class="v">Domande SI/NO</div></div>
+      <div class="kpi"><div class="k">3) Esito preliminare</div><div class="v">Percorso consigliato</div></div>
+    </div>
+    <div class="hr"></div>
+    <a class="btn gold" href="./dashboard.html">Vai alla dashboard</a>
+  </div>
+</div>
+
+  </div>
+
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <script type="module">
+    import { mountTopbar, wireIdentity, getUser } from './assets/area.js';
+    wireIdentity();
+    mountTopbar();
+    const user = getUser();
+    const logoutBtn = document.querySelector("[data-action='logout']");
+    const loginBtn = document.querySelector("[data-action='login']");
+    if(user){
+      logoutBtn.style.display = '';
+      loginBtn.style.display = 'none';
+    }
+    
+  </script>
+</body>
+</html>

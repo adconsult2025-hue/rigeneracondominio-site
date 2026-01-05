@@ -85,6 +85,19 @@
     import { mountTopbar, wireIdentity, getUser } from './assets/area.js';
     wireIdentity();
     mountTopbar();
+
+    // Se la pagina viene aperta da un invito Netlify Identity (invite_token nell'hash),
+    // apri automaticamente il flusso di accettazione invito / impostazione password.
+    // Gestiamo anche il reset password (recovery_token) per completezza.
+    if (window.netlifyIdentity) {
+      const h = window.location.hash || "";
+      if (h.includes("invite_token")) {
+        window.netlifyIdentity.open("signup");
+      } else if (h.includes("recovery_token")) {
+        window.netlifyIdentity.open("recovery");
+      }
+    }
+
     const user = getUser();
     const logoutBtn = document.querySelector("[data-action='logout']");
     const loginBtn = document.querySelector("[data-action='login']");

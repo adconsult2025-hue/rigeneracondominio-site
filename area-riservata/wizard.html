@@ -131,13 +131,35 @@
     const notesEl = document.querySelector("#notes");
 
     notesEl.value = run.notes || "";
-    notesEl.addEventListener("input", ()=>{ run.notes = notesEl.value; upsertRun(run); render(); });
+    notesEl.addEventListener("input", ()=>{
+      run.notes = notesEl.value;
+      upsertRun(run);
+      render();
+    });
 
     function render(){
+      const current = getActiveRun();
+      if(current) run = current;
+      if(!run) run = startNewRun();
+
       const step = getCurrentStep();
+      if(!step){
+        metaEl.textContent = "Step non disponibile";
+        qEl.textContent = "—";
+        helpEl.textContent = "Dati mancanti. Avvia una nuova valutazione dalla dashboard.";
+        badgeTxt.textContent = "—";
+        badgeWrap.classList.remove("ok","warn","bad");
+        sumEl.textContent = JSON.stringify(run || {}, null, 2);
+        return;
+      }
+
+      if(notesEl.value !== (run.notes || "")) notesEl.value = run.notes || "";
+
       metaEl.textContent = `Step: ${step.id}`;
-      qEl.textContent = step.question || "—";
-      helpEl.textContent = step.help || "";
+      qEl.textContent = step.question || (run.status === "completed" ? "Valutazione completata" : "—");
+      helpEl.textContent = run.status === "completed" && step.terminal
+        ? "Valutazione completata. Puoi rivedere le risposte o consultare l’esito."
+        : (step.help || "");
 
       const b = computeBadge(run);
       badgeWrap.classList.remove("ok","warn","bad");
@@ -149,10 +171,16 @@
         status: run.status,
         result: run.result,
         answers: run.answers,
-        notes: run.notes || ""
+        notes: run.notes || "",
+        current_step: run.current_step,
+        updated_at: run.updated_at,
+        created_at: run.created_at
       }, null, 2);
 
-      if(step.terminal){ location.href="./esito.html"; }
+      const actionWrap = document.querySelector("#stepYN");
+      if(actionWrap){
+        actionWrap.style.display = run.status === "completed" ? "none" : "";
+      }
     }
     render();
 

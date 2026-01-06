@@ -22,6 +22,7 @@
         <button class="btn danger" data-action="logout" style="display:none">Esci</button>
       </div>
     </div>
+    <div class="dev-banner">MODALITÀ SVILUPPO – AREA TEMPORANEAMENTE APERTA (AUTH DISABILITATA)</div>
     
 <div class="grid">
   <div class="card">
@@ -120,15 +121,7 @@
 
     // Se cliccano "Vai alla dashboard" e non sono loggati, manda a login
     const dashLink = document.querySelector("a[href='./dashboard.html'], a[href='dashboard.html']");
-    if (dashLink) {
-      dashLink.addEventListener("click", async (e) => {
-        const ok = await isAuthed();
-        if (!ok) {
-          e.preventDefault();
-          await login("/area-riservata/dashboard.html");
-        }
-      });
-    }
+    // DEV: bypass login, accesso libero alla dashboard per test funzionali.
 
     refreshUI();
   </script>

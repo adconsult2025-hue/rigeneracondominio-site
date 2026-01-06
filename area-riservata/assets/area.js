@@ -6,6 +6,13 @@
  */
 
 const STORAGE_KEY = "rigeneraCondominio:area:v1";
+const DEV_USER = {
+  id: "dev-mode-user",
+  email: "dev@rigenera.local",
+  name: "Developer Mode",
+  role: "admin",
+  dev: true
+};
 
 function nowISO(){ return new Date().toISOString(); }
 function loadState(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }catch(e){ return {}; } }
@@ -13,7 +20,7 @@ function saveState(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
 
 export function getUser(){
   const s = loadState();
-  return s.user || null;
+  return s.user || DEV_USER;
 }
 export function setUser(user){
   const s = loadState();
@@ -21,10 +28,12 @@ export function setUser(user){
     s.user = {
       id: user.id || user.sub || user.email || null,
       email: user.email || null,
-      name: user.name || user.email || null
+      name: user.name || user.email || null,
+      role: user.role || "admin",
+      dev: true
     };
   }else{
-    delete s.user;
+    s.user = DEV_USER;
   }
   saveState(s);
 }
@@ -37,11 +46,7 @@ export function mountTopbar(){
 }
 
 export function guardPage(){
-  const user = getUser();
-  if(!user){
-    location.href="./index.html";
-    return false;
-  }
+  // DEV: disabilita guardia e consente sempre l’accesso all’area riservata.
   return true;
 }
 

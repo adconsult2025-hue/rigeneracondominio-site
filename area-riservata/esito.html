@@ -23,6 +23,7 @@
         <button class="btn danger" data-action="logout" style="display:none">Esci</button>
       </div>
     </div>
+    <div class="dev-banner">MODALITÀ SVILUPPO – AREA TEMPORANEAMENTE APERTA (AUTH DISABILITATA)</div>
     
 <div class="grid">
   <div class="card">
@@ -55,10 +56,8 @@
 
   <script type="module">
     import { isAuthed, login } from "./assets/auth0-client.js";
-    const ok = await isAuthed();
-    if (!ok) {
-      await login("/area-riservata/esito.html");
-    }
+    // DEV: autenticazione forzata, nessun redirect verso login.
+    await isAuthed();
   </script>
   <script type="module">
     import { login, logout, isAuthed, getUser as getAuthUser } from "./assets/auth0-client.js";

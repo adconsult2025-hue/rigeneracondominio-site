@@ -50,6 +50,29 @@
     <div class="hr"></div>
     <a class="btn secondary" href="./wizard.html">Rivedi risposte</a>
   </div>
+
+  <div class="card">
+    <h2>Contatti</h2>
+    <p>Lascia i recapiti per ricevere supporto con il riepilogo della valutazione.</p>
+    <div class="hr"></div>
+    <label for="contactName">Nome e Cognome</label>
+    <input id="contactName" type="text" name="name" placeholder="Es. Maria Rossi" required />
+
+    <label for="contactEmail">Email</label>
+    <input id="contactEmail" type="email" name="email" placeholder="nome@azienda.it" required />
+
+    <label for="contactPhone">Telefono</label>
+    <input id="contactPhone" type="tel" name="phone" placeholder="+39 ..." required />
+
+    <label for="contactCondo">Condominio / Indirizzo (opzionale)</label>
+    <input id="contactCondo" type="text" name="condo" placeholder="Via, città, interno" />
+
+    <div class="hr"></div>
+    <div class="actions">
+      <button class="btn gold" id="sendLead">INVIA RICHIESTA</button>
+    </div>
+    <div id="leadNotice" class="notice" style="display:none"></div>
+  </div>
 </div>
 
   </div>
@@ -155,6 +178,109 @@
     }else{
       cta.innerHTML = `<a class="btn gold" href="./attiva.html">Attiva</a>`;
       next.innerHTML = "—";
+    }
+
+    const STORAGE_KEY = "rigeneraCondominio:area:v1";
+    const btnLead = document.querySelector("#sendLead");
+    const leadNotice = document.querySelector("#leadNotice");
+
+    function getState(){
+      try{
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      }catch(e){
+        return {};
+      }
+    }
+
+    function pickRun(){
+      const state = getState();
+      const runs = Array.isArray(state.runs) ? state.runs : [];
+      if(runs.length === 0) return null;
+      const activeId = state.activeRunId;
+      return runs.find(r => r.id === activeId) || runs[0];
+    }
+
+    function showLeadNotice(msg, ok){
+      if(!leadNotice) return;
+      leadNotice.textContent = msg;
+      leadNotice.style.display = "block";
+      if(ok){
+        leadNotice.style.borderColor = "rgba(107,217,139,.45)";
+        leadNotice.style.background = "rgba(107,217,139,.12)";
+        leadNotice.style.color = "#d7e2de";
+      }else{
+        leadNotice.style.borderColor = "rgba(224,99,99,.45)";
+        leadNotice.style.background = "rgba(224,99,99,.10)";
+        leadNotice.style.color = "#f1d0d0";
+      }
+    }
+
+    async function sendLead(){
+      if(btnLead) btnLead.disabled = true;
+      showLeadNotice("Invio in corso…", true);
+
+      const contact = {
+        name: document.querySelector("#contactName")?.value?.trim() || "",
+        email: document.querySelector("#contactEmail")?.value?.trim() || "",
+        phone: document.querySelector("#contactPhone")?.value?.trim() || "",
+        condo: document.querySelector("#contactCondo")?.value?.trim() || ""
+      };
+
+      if(!contact.name || !contact.email || !contact.phone){
+        showLeadNotice("Compila Nome e Cognome, Email e Telefono.", false);
+        if(btnLead) btnLead.disabled = false;
+        return;
+      }
+
+      const pickedRun = pickRun();
+      if(!pickedRun || !pickedRun.answers || Object.keys(pickedRun.answers).length === 0){
+        showLeadNotice("Nessuna valutazione trovata. Completa o riprendi il wizard.", false);
+        if(btnLead) btnLead.disabled = false;
+        return;
+      }
+
+      const payload = {
+        contact,
+        run: {
+          id: pickedRun.id,
+          created_at: pickedRun.created_at,
+          updated_at: pickedRun.updated_at,
+          current_step: pickedRun.current_step,
+          status: pickedRun.status,
+          result: pickedRun.result,
+          notes: pickedRun.notes,
+          answers: pickedRun.answers,
+          user_id: pickedRun.user_id
+        },
+        userAgent: navigator.userAgent,
+        pageUrl: location.href,
+        ts: new Date().toISOString()
+      };
+
+      try{
+        const res = await fetch("/.netlify/functions/lead-submit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(()=> ({}));
+        if(!res.ok || !data.ok){
+          showLeadNotice("Errore nell’invio. Riprova tra poco.", false);
+        }else{
+          showLeadNotice("Richiesta inviata con successo! Ti ricontatteremo presto.", true);
+        }
+      }catch(e){
+        showLeadNotice("Errore di rete: controlla la connessione e riprova.", false);
+      }finally{
+        if(btnLead) btnLead.disabled = false;
+      }
+    }
+
+    if(btnLead){
+      btnLead.addEventListener("click", (ev)=>{
+        ev.preventDefault();
+        sendLead();
+      });
     }
 
   </script>

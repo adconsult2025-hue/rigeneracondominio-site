@@ -31,6 +31,18 @@ a{color:inherit; text-decoration:none}
   background: rgba(15,26,24,.55); backdrop-filter: blur(8px);
   border-radius: var(--radius); box-shadow: var(--shadow);
 }
+.dev-banner{
+  margin:14px 0 4px;
+  padding:12px 14px;
+  border-radius: var(--radius);
+  border:1px dashed rgba(217,183,95,.55);
+  background: rgba(217,183,95,.12);
+  color:#f3e7c4;
+  font-weight:700;
+  letter-spacing: .2px;
+  text-align:center;
+  box-shadow: var(--shadow);
+}
 .brand{display:flex; align-items:center; gap:12px;}
 .brand .logo{
   width:36px; height:36px; border-radius:12px;

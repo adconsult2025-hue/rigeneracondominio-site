@@ -14,6 +14,13 @@ export const AUTH0_CONFIG = {
 };
 
 let auth0 = null;
+const DEV_USER = {
+  role: "admin",
+  dev: true,
+  email: "dev@rigenera.local",
+  name: "Developer Mode",
+  sub: "dev-mode-user"
+};
 
 function loadScriptOnce(src) {
   return new Promise((resolve, reject) => {
@@ -58,6 +65,9 @@ async function ensureAuth0SdkLoaded() {
 export async function getAuth0() {
   if (auth0) return auth0;
 
+  // DEV: bypass completo Auth0, forzando client fittizio già autenticato.
+  // Il blocco originale rimane commentato per il ripristino futuro.
+  /*
   // Fail-fast se qualcuno rimette placeholder o configura male
   if (!AUTH0_CONFIG.domain || AUTH0_CONFIG.domain.includes("__")) {
     throw new Error("Auth0 domain non configurato (AUTH0_CONFIG.domain).");
@@ -71,35 +81,50 @@ export async function getAuth0() {
   if (!window.createAuth0Client) throw new Error("Auth0 SDK not loaded (createAuth0Client undefined).");
 
   auth0 = await window.createAuth0Client(AUTH0_CONFIG);
+  */
+  auth0 = {
+    loginWithRedirect: async ({ appState } = {}) => {
+      // DEV: niente redirect verso login per rendere l’area pubblica temporaneamente.
+      console.info("[DEV MODE] login bypassed", appState);
+      return true;
+    },
+    logout: async () => {
+      console.info("[DEV MODE] logout bypassed");
+      return true;
+    },
+    isAuthenticated: async () => true,
+    getUser: async () => DEV_USER,
+    handleRedirectCallback: async () => ({ appState: { targetUrl: "/area-riservata/dashboard.html" } })
+  };
   return auth0;
 }
 
 export async function login(targetUrl = "/area-riservata/dashboard.html") {
   const a0 = await getAuth0();
-  await a0.loginWithRedirect({
-    appState: { targetUrl }
-  });
+  // DEV: disabilita redirect verso login mantenendo compatibilità per il ripristino.
+  // await a0.loginWithRedirect({ appState: { targetUrl } });
+  console.info("[DEV MODE] login() chiamato, redirect disabilitato", { targetUrl });
 }
 
 export async function logout(returnTo = `${window.location.origin}/area-riservata/`) {
   const a0 = await getAuth0();
-  a0.logout({ logoutParams: { returnTo } });
+  // DEV: logout disabilitato per evitare redirezioni e lasciare l’utente sempre autenticato.
+  // a0.logout({ logoutParams: { returnTo } });
+  console.info("[DEV MODE] logout() chiamato, nessun redirect", { returnTo });
 }
 
 export async function isAuthed() {
-  const a0 = await getAuth0();
-  return await a0.isAuthenticated();
+  // DEV: forza autenticazione sempre vera.
+  return true;
 }
 
 export async function getUser() {
-  const a0 = await getAuth0();
-  const ok = await a0.isAuthenticated();
-  if (!ok) return null;
-  return await a0.getUser();
+  // DEV: restituisce sempre utente mock amministratore.
+  return DEV_USER;
 }
 
 export async function handleCallback() {
   const a0 = await getAuth0();
-  const result = await a0.handleRedirectCallback();
-  return result;
+  // DEV: nessuna gestione reale della callback, restituisce appState fittizio.
+  return await a0.handleRedirectCallback();
 }

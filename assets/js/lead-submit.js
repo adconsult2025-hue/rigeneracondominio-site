@@ -13,6 +13,26 @@
     return "";
   };
 
+  const getFullName = (form) => {
+    const fullName = getFieldValue(form, [
+      "nome_cognome",
+      "full_name",
+      "referente",
+      "amministratore",
+      "richiedente",
+      "name",
+      "nome",
+      "cognome",
+    ]);
+    if (fullName) return fullName;
+
+    const nome = getFieldValue(form, ["nome"]);
+    const cognome = getFieldValue(form, ["cognome"]);
+    if (nome && cognome) return `${nome} ${cognome}`.trim();
+
+    return "";
+  };
+
   const ensureResponseEl = (form) => {
     let el = form.nextElementSibling;
     if (!el || !el.classList || !el.classList.contains("form-response")) {
@@ -25,25 +45,41 @@
   };
 
   const buildPayload = (form) => {
-    const fullName = getFieldValue(form, ["nome", "nome_cognome", "full_name"]);
+    const fullName = getFullName(form);
     const orgName = getFieldValue(form, ["condominio", "condominio_nome", "condominioName"]);
     const role = getFieldValue(form, ["ruolo", "role", "tipologia"]);
     const email = getFieldValue(form, ["email"]);
     const phone = getFieldValue(form, ["telefono", "phone", "cellulare"]);
-    const city = getFieldValue(form, ["citta", "comune", "città", "city"]);
-    const message = getFieldValue(form, ["messaggio", "message", "note"]);
+    const city = getFieldValue(form, [
+      "citta",
+      "città",
+      "comune",
+      "comune_immobile",
+      "localita",
+      "località",
+      "provincia",
+      "city",
+    ]);
+    const message = getFieldValue(form, [
+      "messaggio",
+      "message",
+      "note",
+      "richiesta",
+      "testo",
+      "descrizione",
+    ]);
 
     return {
       source_site: sourceSite,
       lead_type: "contatto",
       org_type: "condominio",
       org_name: orgName || "Condominio non specificato",
-      full_name: fullName,
+      full_name: fullName || "Richiedente non indicato",
       role,
       email,
       phone,
-      city,
-      message,
+      city: city || "Non indicato",
+      message: message || "Richiesta da form sito Rigenera Condominio.",
       source_url: window.location.href,
     };
   };
@@ -81,6 +117,7 @@
         responseEl.textContent = "Richiesta inviata correttamente. Verrai ricontattato.";
         form.reset();
       } else {
+        console.error("Lead submit error", response.status, data || response.statusText);
         const message =
           (data && (data.message || data.error)) ||
           "Si è verificato un errore durante l'invio. Riprova tra poco.";
@@ -97,7 +134,10 @@
     }
   };
 
-  const forms = Array.from(document.querySelectorAll("form"));
+  let forms = Array.from(document.querySelectorAll("form[data-lead-form='1']"));
+  if (!forms.length) {
+    forms = Array.from(document.querySelectorAll("form#contactForm, form.contact-form"));
+  }
   if (!forms.length) return;
 
   forms.forEach((form) => {

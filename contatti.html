@@ -62,7 +62,7 @@
         <h2 id="form-contatti">Compila il form</h2>
         <p>I tuoi dati sono trattati con attenzione. Evita di caricare dati sensibili non necessari.</p>
       </div>
-      <form class="contact-form" name="contatti" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/thank-you.html" enctype="multipart/form-data">
+      <form class="contact-form" name="contatti" method="POST" data-netlify="true" data-lead-form="1" netlify-honeypot="bot-field" action="/thank-you.html" enctype="multipart/form-data">
         <input type="hidden" name="form-name" value="contatti">
         <p class="hidden"><label>Non compilare: <input name="bot-field"></label></p>
         <div class="form-grid">
@@ -151,6 +151,7 @@
     })();
   </script>
 
+  <script src="assets/js/lead-submit.js"></script>
   <script src="assets/js/main.js"></script>
 </body>
 </html>

@@ -91,12 +91,12 @@
         <input id="companyWebsite" type="text" name="company_website" autocomplete="off" tabindex="-1" />
       </div>
 
-      <textarea id="leadMessage" name="messaggio" class="hidden-field" required></textarea>
+      <textarea id="leadMessage" name="messaggio" class="hidden-field"></textarea>
 
       <label for="leadAttachments">Allegati (PDF, JPG, PNG)</label>
       <input id="leadAttachments" type="file" name="allegato" multiple accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" />
       <small class="help">Puoi caricare più file (max 5, 15 MB cad.).</small>
-      <small class="help">I link agli allegati scadono dopo 7 giorni.</small>
+      <small class="help">Gli allegati verranno richiesti in fase di onboarding in piattaforma.</small>
 
       <div class="hr"></div>
       <div class="actions">
@@ -174,11 +174,12 @@
     const messageField = document.querySelector("#leadMessage");
     if (messageField) {
       messageField.value = [
-        `Esito preliminare: ${b.label}`,
+        `Esito preliminare: ${b?.label || "—"}`,
         "",
         "Riepilogo:",
-        JSON.stringify(run, null, 2),
+        JSON.stringify(run || {}, null, 2),
       ].join("\n");
+      messageField.value = messageField.value || "Richiesta contatto da esito preliminare.";
     }
   </script>
   <script src="/assets/js/lead-submit.js"></script>

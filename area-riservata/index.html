@@ -70,7 +70,7 @@
   <div class="card">
     <h2>Come funziona</h2>
     <div class="kpis">
-      <div class="kpi"><div class="k">1) Accesso su invito</div><div class="v">Auth0</div></div>
+      <div class="kpi"><div class="k">1) Accesso su invito</div><div class="v">Accesso riservato</div></div>
       <div class="kpi"><div class="k">2) Wizard decisionale</div><div class="v">Domande SI/NO</div></div>
       <div class="kpi"><div class="k">3) Esito preliminare</div><div class="v">Percorso consigliato</div></div>
     </div>
@@ -80,50 +80,17 @@
 </div>
 
   </div>
-  <!-- Auth0 SDK (LOCAL, same-origin) per evitare blocchi CORS/policy -->
-  <script src="./assets/vendor/auth0-spa-js.production.js"></script>
   <script type="module">
-    import { login, logout, isAuthed, getUser } from "./assets/auth0-client.js";
     import { mountTopbar } from "./assets/area.js";
 
     // Mantieni la topbar esistente (se area.js la gestisce)
     try { mountTopbar(); } catch(e) {}
 
-    async function refreshUI(){
-      const ok = await isAuthed();
-      const user = ok ? await getUser() : null;
+    const loginBtn = document.querySelector("[data-action='login']");
+    const logoutBtn = document.querySelector("[data-action='logout']");
 
-      const loginBtn = document.querySelector("[data-action='login']");
-      const logoutBtn = document.querySelector("[data-action='logout']");
-
-      if (loginBtn) loginBtn.style.display = ok ? "none" : "";
-      if (logoutBtn) logoutBtn.style.display = ok ? "" : "none";
-
-      const elEmail = document.querySelector("[data-user-email]");
-      const elName  = document.querySelector("[data-user-name]");
-      if (elEmail) elEmail.textContent = user?.email || "Ospite";
-      if (elName)  elName.textContent  = user?.name  || user?.email || "Ospite";
-    }
-
-    document.addEventListener("click", async (ev) => {
-      const t = ev.target.closest("[data-action]");
-      if (!t) return;
-      const act = t.getAttribute("data-action");
-      if (act === "login") {
-        ev.preventDefault();
-        await login("/area-riservata/dashboard.html");
-      }
-      if (act === "logout") {
-        ev.preventDefault();
-        await logout("https://www.rigeneracondominio.it/area-riservata/");
-      }
-    });
-
-    // Se cliccano "Vai alla dashboard" e non sono loggati, manda a login
-    const dashLink = document.querySelector("a[href='./dashboard.html'], a[href='dashboard.html']");
-    // DEV: bypass login, accesso libero alla dashboard per test funzionali.
-
-    refreshUI();
+    if (loginBtn) loginBtn.style.display = "none";
+    if (logoutBtn) logoutBtn.style.display = "none";
   </script>
   <script src="../assets/js/lead-submit.js"></script>
 </body>

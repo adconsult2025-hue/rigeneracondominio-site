@@ -13,24 +13,12 @@
     return "";
   };
 
-  const getFullName = (form) => {
-    const fullName = getFieldValue(form, [
-      "nome_cognome",
-      "full_name",
-      "referente",
-      "amministratore",
-      "richiedente",
-      "name",
-      "nome",
-      "cognome",
-    ]);
-    if (fullName) return fullName;
-
-    const nome = getFieldValue(form, ["nome"]);
-    const cognome = getFieldValue(form, ["cognome"]);
-    if (nome && cognome) return `${nome} ${cognome}`.trim();
-
-    return "";
+  const detectLeadType = (form) => {
+    const formName = (form.getAttribute("name") || "").toLowerCase();
+    if (formName.includes("richiesta-accesso")) {
+      return "richiesta_accesso";
+    }
+    return "contatto";
   };
 
   const ensureResponseEl = (form) => {
@@ -45,42 +33,37 @@
   };
 
   const buildPayload = (form) => {
-    const fullName = getFullName(form);
-    const orgName = getFieldValue(form, ["condominio", "condominio_nome", "condominioName"]);
-    const role = getFieldValue(form, ["ruolo", "role", "tipologia"]);
+    const fullName = getFieldValue(form, ["nome"]);
     const email = getFieldValue(form, ["email"]);
-    const phone = getFieldValue(form, ["telefono", "phone", "cellulare"]);
-    const city = getFieldValue(form, [
-      "citta",
-      "città",
-      "comune",
-      "comune_immobile",
-      "localita",
-      "località",
-      "provincia",
-      "city",
-    ]);
-    const message = getFieldValue(form, [
-      "messaggio",
-      "message",
-      "note",
-      "richiesta",
-      "testo",
-      "descrizione",
-    ]);
+    const phone = getFieldValue(form, ["telefono", "cellulare"]);
+    const city = getFieldValue(form, ["citta", "città", "comune"]);
+    const message = getFieldValue(form, ["messaggio"]);
+    const orgNameValue = getFieldValue(form, ["condominio"]);
+    const orgName = orgNameValue || `Contatto sito – ${city || "Comune non indicato"}`;
+    const role = getFieldValue(form, ["tipologia"]);
+    const attachmentField = form.querySelector("input[type='file'][name='allegato']");
+    const attachments =
+      attachmentField && attachmentField.files && attachmentField.files.length
+        ? Array.from(attachmentField.files).map((file) => ({
+            name: file.name,
+            size: file.size,
+            type: file.type,
+          }))
+        : null;
 
     return {
       source_site: sourceSite,
-      lead_type: "contatto",
+      lead_type: detectLeadType(form),
       org_type: "condominio",
-      org_name: orgName || "Condominio non specificato",
-      full_name: fullName || "Richiedente non indicato",
+      org_name: orgName,
+      full_name: fullName,
       role,
       email,
       phone,
-      city: city || "Non indicato",
-      message: message || "Richiesta da form sito Rigenera Condominio.",
+      city,
+      message,
       source_url: window.location.href,
+      attachments,
     };
   };
 
@@ -98,6 +81,11 @@
 
     try {
       const payload = buildPayload(form);
+      if (!payload.full_name || !payload.email || !payload.city || !payload.message) {
+        responseEl.textContent =
+          "Compila i campi obbligatori: Nome, Email, Città/Comune, Messaggio.";
+        return;
+      }
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -107,8 +95,10 @@
       });
 
       let data = null;
+      let responseText = "";
       try {
-        data = await response.json();
+        responseText = await response.text();
+        data = responseText ? JSON.parse(responseText) : null;
       } catch (error) {
         data = null;
       }
@@ -117,13 +107,14 @@
         responseEl.textContent = "Richiesta inviata correttamente. Verrai ricontattato.";
         form.reset();
       } else {
-        console.error("Lead submit error", response.status, data || response.statusText);
+        console.error("Lead submit error", response.status, responseText || response.statusText);
         const message =
-          (data && (data.message || data.error)) ||
+          (data && (data.error || data.message)) ||
           "Si è verificato un errore durante l'invio. Riprova tra poco.";
         responseEl.textContent = message;
       }
     } catch (error) {
+      console.error("Lead submit error", error);
       responseEl.textContent = "Si è verificato un errore durante l'invio. Riprova tra poco.";
     } finally {
       if (submitButton) {

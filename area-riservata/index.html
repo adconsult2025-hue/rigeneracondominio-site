@@ -37,7 +37,7 @@
     </div>
     <div class="hr"></div>
 
-    <form name="richiesta-accesso-condominio" method="POST" data-netlify="true">
+    <form name="richiesta-accesso-condominio" method="POST" data-netlify="true" data-lead-form="1">
       <input type="hidden" name="form-name" value="richiesta-accesso-condominio" />
       <div class="form-row">
         <div>
@@ -60,7 +60,7 @@
         </div>
       </div>
       <label>Messaggio</label>
-      <textarea name="messaggio" placeholder="Breve descrizione esigenze, interventi, tempistiche…"></textarea>
+      <textarea name="messaggio" placeholder="Breve descrizione esigenze, interventi, tempistiche…" required></textarea>
       <div class="hr"></div>
       <button class="btn secondary" type="submit">Invia richiesta</button>
       <small class="help">Riceverai risposta con eventuale invito/abilitazione.</small>
@@ -125,5 +125,6 @@
 
     refreshUI();
   </script>
+  <script src="../assets/js/lead-submit.js"></script>
 </body>
 </html>

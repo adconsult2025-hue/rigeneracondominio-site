@@ -5,7 +5,7 @@
  * - GCS_PROJECT_ID (optional)
  */
 
-import crypto from "crypto";
+const crypto = require("crypto");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +20,15 @@ const ALLOWED_CONTENT_TYPES = new Set(["application/pdf", "image/jpeg", "image/p
 
 function json(statusCode, body){
   return { statusCode, headers: corsHeaders, body: JSON.stringify(body) };
+}
+
+function logError(where, type){
+  console.error(`[${where}] ${type}`);
+}
+
+function errorResponse(statusCode, where, error, hint){
+  logError(where, error);
+  return json(statusCode, { ok:false, where, error, hint });
 }
 
 function getBodyBytes(event){
@@ -123,97 +132,111 @@ function buildSignedUrl({
   return `https://${host}${canonicalUri}?${signedQuery}`;
 }
 
-export const handler = async (event) => {
-  if(event.httpMethod === "OPTIONS"){
-    return { statusCode: 200, headers: corsHeaders, body: "" };
-  }
-
-  if(event.httpMethod !== "POST"){
-    return json(405, { ok:false, error:"method_not_allowed" });
-  }
-
-  if(getBodyBytes(event) > MAX_BODY_BYTES){
-    return json(413, { ok:false, error:"payload_too_large" });
-  }
-
-  let payload;
+exports.handler = async (event) => {
+  const where = "lead-upload-url";
   try{
-    payload = JSON.parse(event.body || "{}");
+    if(event.httpMethod === "OPTIONS"){
+      return { statusCode: 200, headers: corsHeaders, body: "" };
+    }
+
+    if(event.httpMethod !== "POST"){
+      return errorResponse(405, where, "method_not_allowed", "Use POST.");
+    }
+
+    if(getBodyBytes(event) > MAX_BODY_BYTES){
+      return errorResponse(413, where, "payload_too_large", "Reduce request size.");
+    }
+
+    let payload;
+    try{
+      payload = JSON.parse(event.body || "{}");
+    }catch(e){
+      return errorResponse(400, where, "invalid_json", "Check JSON payload.");
+    }
+
+    const { leadId, filename, contentType } = payload || {};
+    if(!leadId || !filename){
+      return errorResponse(400, where, "missing_required_fields", "Provide leadId and filename.");
+    }
+    if(contentType && !ALLOWED_CONTENT_TYPES.has(contentType)){
+      return errorResponse(400, where, "invalid_content_type", "Unsupported content type.");
+    }
+
+    const bucket = process.env.GCS_BUCKET;
+    const keyJson = process.env.GCS_SA_KEY_JSON;
+    const missingEnv = ["GCS_BUCKET", "GCS_SA_KEY_JSON"]
+      .filter((key) => !process.env[key]);
+
+    if(missingEnv.length){
+      return errorResponse(
+        500,
+        where,
+        `missing_env: ${missingEnv.join(", ")}`,
+        "Set required environment variables."
+      );
+    }
+
+    let key;
+    try{
+      key = JSON.parse(keyJson);
+    }catch(e){
+      return errorResponse(500, where, "invalid_service_account", "Invalid GCS_SA_KEY_JSON.");
+    }
+
+    const clientEmail = key.client_email;
+    const privateKey = key.private_key;
+    if(!clientEmail || !privateKey){
+      return errorResponse(500, where, "invalid_service_account", "Missing client_email/private_key.");
+    }
+
+    const safeLeadId = sanitizeLeadId(leadId);
+    if(!safeLeadId){
+      return errorResponse(400, where, "invalid_lead_id", "leadId contains invalid characters.");
+    }
+
+    const safeFilename = sanitizeFilename(filename);
+    const { dateStamp, timeStamp } = formatDateParts();
+    const datePrefix = `${dateStamp.slice(0, 4)}-${dateStamp.slice(4, 6)}-${dateStamp.slice(6, 8)}`;
+    const objectPath = `leads/${datePrefix}/${safeLeadId}/${safeFilename}`;
+    const resolvedContentType = contentType || "application/octet-stream";
+
+    try{
+      const signedUploadUrl = buildSignedUrl({
+        method: "PUT",
+        bucket,
+        objectPath,
+        expires: UPLOAD_EXPIRES_SECONDS,
+        contentType: resolvedContentType,
+        clientEmail,
+        privateKey,
+        dateStamp,
+        timeStamp
+      });
+
+      const signedReadUrl = buildSignedUrl({
+        method: "GET",
+        bucket,
+        objectPath,
+        expires: READ_EXPIRES_SECONDS,
+        contentType: "",
+        clientEmail,
+        privateKey,
+        dateStamp,
+        timeStamp
+      });
+
+      return json(200, {
+        ok: true,
+        gcsPath: objectPath,
+        signedUploadUrl,
+        signedReadUrl
+      });
+    }catch(e){
+      const message = String(e?.message || e).slice(0, 500);
+      return errorResponse(500, where, message || "signing_failed", "Check signing configuration.");
+    }
   }catch(e){
-    return json(400, { ok:false, error:"invalid_json" });
-  }
-
-  const { leadId, filename, contentType } = payload || {};
-  if(!leadId || !filename){
-    return json(400, { ok:false, error:"missing_required_fields" });
-  }
-  if(contentType && !ALLOWED_CONTENT_TYPES.has(contentType)){
-    return json(400, { ok:false, error:"invalid_content_type" });
-  }
-
-  const bucket = process.env.GCS_BUCKET;
-  const keyJson = process.env.GCS_SA_KEY_JSON;
-
-  if(!bucket || !keyJson){
-    return json(500, { ok:false, error:"missing_env" });
-  }
-
-  let key;
-  try{
-    key = JSON.parse(keyJson);
-  }catch(e){
-    return json(500, { ok:false, error:"invalid_service_account" });
-  }
-
-  const clientEmail = key.client_email;
-  const privateKey = key.private_key;
-  if(!clientEmail || !privateKey){
-    return json(500, { ok:false, error:"invalid_service_account" });
-  }
-
-  const safeLeadId = sanitizeLeadId(leadId);
-  if(!safeLeadId){
-    return json(400, { ok:false, error:"invalid_lead_id" });
-  }
-
-  const safeFilename = sanitizeFilename(filename);
-  const { dateStamp, timeStamp } = formatDateParts();
-  const datePrefix = `${dateStamp.slice(0, 4)}-${dateStamp.slice(4, 6)}-${dateStamp.slice(6, 8)}`;
-  const objectPath = `leads/${datePrefix}/${safeLeadId}/${safeFilename}`;
-  const resolvedContentType = contentType || "application/octet-stream";
-
-  try{
-    const signedUploadUrl = buildSignedUrl({
-      method: "PUT",
-      bucket,
-      objectPath,
-      expires: UPLOAD_EXPIRES_SECONDS,
-      contentType: resolvedContentType,
-      clientEmail,
-      privateKey,
-      dateStamp,
-      timeStamp
-    });
-
-    const signedReadUrl = buildSignedUrl({
-      method: "GET",
-      bucket,
-      objectPath,
-      expires: READ_EXPIRES_SECONDS,
-      contentType: "",
-      clientEmail,
-      privateKey,
-      dateStamp,
-      timeStamp
-    });
-
-    return json(200, {
-      ok: true,
-      gcsPath: objectPath,
-      signedUploadUrl,
-      signedReadUrl
-    });
-  }catch(e){
-    return json(500, { ok:false, error:"signing_failed" });
+    const message = String(e?.message || e).slice(0, 500);
+    return errorResponse(500, where, message || "unexpected_error", "Unhandled error.");
   }
 };

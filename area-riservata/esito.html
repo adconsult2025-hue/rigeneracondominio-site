@@ -9,6 +9,17 @@
     .file-list{list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:8px}
     .file-list li{display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:12px; color: var(--text)}
     .file-list small{color: var(--muted)}
+    .hidden-field{display:none !important}
+    .confirm-box{border:1px solid rgba(107,217,139,.45); background:rgba(107,217,139,.12); padding:16px; border-radius:12px; color:#d7e2de; display:none}
+    .confirm-box h3{margin-top:0}
+    .confirm-meta{display:flex; flex-direction:column; gap:6px; font-size:14px}
+    .confirm-code{font-size:20px; font-weight:700; letter-spacing:1px}
+    .print-area{display:none}
+    @media print{
+      body *{visibility:hidden !important}
+      .print-area, .print-area *{visibility:visible !important}
+      .print-area{display:block; position:absolute; left:0; top:0; width:100%; padding:24px}
+    }
   </style>
 </head>
 <body>
@@ -75,9 +86,15 @@
     <label for="contactCity">Città (opzionale)</label>
     <input id="contactCity" type="text" name="city" placeholder="Es. Milano" />
 
+    <div class="hidden-field" aria-hidden="true">
+      <label for="companyWebsite">Company Website</label>
+      <input id="companyWebsite" type="text" name="company_website" autocomplete="off" tabindex="-1" />
+    </div>
+
     <label for="leadAttachments">Allegati (PDF, JPG, PNG)</label>
     <input id="leadAttachments" type="file" name="attachments" multiple accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" />
-    <small class="help">Puoi caricare più file. Ogni allegato verrà caricato e inviato con un link dedicato.</small>
+    <small class="help">Puoi caricare più file (max 5, 15 MB cad.). Ogni allegato verrà caricato e inviato con un link dedicato.</small>
+    <small class="help">I link agli allegati scadono dopo 7 giorni.</small>
     <ul id="leadFiles" class="file-list"></ul>
     <small id="uploadStatus" class="help"></small>
 
@@ -86,6 +103,17 @@
       <button class="btn gold" id="sendLead">INVIA RICHIESTA</button>
     </div>
     <div id="leadNotice" class="notice" style="display:none"></div>
+    <div id="leadConfirmation" class="confirm-box">
+      <h3>Richiesta inviata correttamente. Ti contatteremo a breve.</h3>
+      <div class="confirm-meta">
+        <div>Codice pratica</div>
+        <div id="leadCodeDisplay" class="confirm-code">—</div>
+        <div>Data/ora invio: <span id="leadSubmittedAt">—</span></div>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn secondary" id="printLead">Scarica riepilogo</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -195,12 +223,21 @@
     }
 
     const STORAGE_KEY = "rigeneraCondominio:area:v1";
+    const DRAFT_KEY = "rigeneraCondominio:leadDraft";
+    const LAST_SUBMIT_KEY = "rigeneraCondominio:lastSubmit";
     const btnLead = document.querySelector("#sendLead");
     const leadNotice = document.querySelector("#leadNotice");
+    const leadConfirmation = document.querySelector("#leadConfirmation");
+    const leadCodeDisplay = document.querySelector("#leadCodeDisplay");
+    const leadSubmittedAt = document.querySelector("#leadSubmittedAt");
+    const printLead = document.querySelector("#printLead");
     const attachmentsInput = document.querySelector("#leadAttachments");
     const attachmentsList = document.querySelector("#leadFiles");
     const uploadStatus = document.querySelector("#uploadStatus");
+    const honeypotInput = document.querySelector("#companyWebsite");
     let selectedFiles = [];
+    let isSubmitting = false;
+    let leadCodeValue = "";
 
     function getState(){
       try{
@@ -218,8 +255,9 @@
       return runs.find(r => r.id === activeId) || runs[runs.length - 1];
     }
 
-    function showLeadNotice(msg, ok){
+    function showLeadNotice(msg, ok, keepConfirmation = false){
       if(!leadNotice) return;
+      if(leadConfirmation && !keepConfirmation) leadConfirmation.style.display = "none";
       leadNotice.textContent = msg;
       leadNotice.style.display = "block";
       if(ok){
@@ -230,6 +268,19 @@
         leadNotice.style.borderColor = "rgba(224,99,99,.45)";
         leadNotice.style.background = "rgba(224,99,99,.10)";
         leadNotice.style.color = "#f1d0d0";
+      }
+    }
+
+    function showLeadConfirmation({ leadCode, submittedAt, failedAttachments = [] }){
+      if(leadNotice) leadNotice.style.display = "none";
+      if(leadCodeDisplay) leadCodeDisplay.textContent = leadCode || "—";
+      if(leadSubmittedAt) leadSubmittedAt.textContent = submittedAt || "—";
+      if(leadConfirmation) leadConfirmation.style.display = "block";
+      window.leadCodeValue = leadCode || "";
+      window.lastSubmittedAt = submittedAt || "";
+      if(failedAttachments.length){
+        const message = `${failedAttachments.length} allegato${failedAttachments.length === 1 ? "" : "i"} non caricato: ${failedAttachments.join(", ")}. Richiesta inviata comunque.`;
+        showLeadNotice(message, true, true);
       }
     }
 
@@ -264,24 +315,131 @@
       if(uploadStatus) uploadStatus.textContent = text || "";
     }
 
+    function formatLeadCode(leadId){
+      const date = new Date();
+      const yyyymmdd = date.toISOString().slice(0, 10).replace(/-/g, "");
+      const suffix = String(leadId || "").slice(-6).toUpperCase();
+      return `RC-${yyyymmdd}-${suffix}`;
+    }
+
     function generateLeadId(){
       if(window.crypto?.randomUUID) return window.crypto.randomUUID();
       const rand = () => Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
       return `${rand()}${rand()}-${rand()}-${rand()}-${rand()}-${rand()}${rand()}${rand()}`;
     }
 
+    function readDraft(){
+      try{
+        return JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}");
+      }catch(e){
+        return {};
+      }
+    }
+
+    function saveDraft(values){
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(values));
+    }
+
+    function restoreDraft(){
+      const draft = readDraft();
+      const mapping = {
+        "#contactName": draft.name,
+        "#contactEmail": draft.email,
+        "#contactPhone": draft.phone,
+        "#contactCondo": draft.condo,
+        "#contactCity": draft.city
+      };
+      Object.entries(mapping).forEach(([selector, value]) => {
+        const el = document.querySelector(selector);
+        if(el && value && !el.value) el.value = value;
+      });
+    }
+
+    function wireDraftInputs(){
+      const fields = [
+        { id: "#contactName", key: "name" },
+        { id: "#contactEmail", key: "email" },
+        { id: "#contactPhone", key: "phone" },
+        { id: "#contactCondo", key: "condo" },
+        { id: "#contactCity", key: "city" }
+      ];
+      fields.forEach(({ id, key }) => {
+        const el = document.querySelector(id);
+        if(!el) return;
+        el.addEventListener("input", () => {
+          const current = readDraft();
+          current[key] = el.value;
+          saveDraft(current);
+        });
+      });
+    }
+
+    function getRecentSubmit(){
+      try{
+        return JSON.parse(localStorage.getItem(LAST_SUBMIT_KEY) || "{}");
+      }catch(e){
+        return {};
+      }
+    }
+
+    function setRecentSubmit(data){
+      localStorage.setItem(LAST_SUBMIT_KEY, JSON.stringify(data));
+    }
+
+    function validateFiles(files){
+      const allowedTypes = new Set(["application/pdf", "image/jpeg", "image/png"]);
+      const errors = [];
+      if(files.length > 5){
+        errors.push("Puoi caricare al massimo 5 allegati.");
+      }
+      files.forEach((file) => {
+        if(!allowedTypes.has(file.type)){
+          errors.push(`Formato non supportato per ${file.name}.`);
+        }
+        if(file.size > 15 * 1024 * 1024){
+          errors.push(`${file.name} supera 15 MB.`);
+        }
+      });
+      return errors;
+    }
+
     if(attachmentsInput){
       attachmentsInput.addEventListener("change", (ev) => {
         selectedFiles = Array.from(ev.target.files || []);
-        renderFileList();
-        setUploadStatus(selectedFiles.length ? `Allegati selezionati: ${selectedFiles.length}` : "");
+        const errors = validateFiles(selectedFiles);
+        const statuses = selectedFiles.map((file) => {
+          if(file.size > 15 * 1024 * 1024) return "Errore: supera 15 MB";
+          if(!["application/pdf", "image/jpeg", "image/png"].includes(file.type)) return "Errore: formato non valido";
+          return "In attesa";
+        });
+        renderFileList(statuses);
+        if(errors.length){
+          setUploadStatus(errors.join(" "));
+        }else{
+          setUploadStatus(selectedFiles.length ? `Allegati selezionati: ${selectedFiles.length}` : "");
+        }
       });
     }
 
     async function sendLead(){
-      if(btnLead) btnLead.disabled = true;
+      if(isSubmitting) return;
+      isSubmitting = true;
+      if(btnLead){
+        btnLead.disabled = true;
+        btnLead.textContent = "Invio in corso...";
+      }
       showLeadNotice("Invio in corso…", true);
       setUploadStatus("");
+
+      if(honeypotInput && honeypotInput.value.trim()){
+        showLeadNotice("Errore nell’invio. Riprova tra poco.", false);
+        if(btnLead){
+          btnLead.disabled = false;
+          btnLead.textContent = "INVIA RICHIESTA";
+        }
+        isSubmitting = false;
+        return;
+      }
 
       const contact = {
         name: document.querySelector("#contactName")?.value?.trim() || "",
@@ -293,24 +451,60 @@
 
       if(!contact.name || !contact.email || !contact.phone){
         showLeadNotice("Compila Nome e Cognome, Email e Telefono.", false);
-        if(btnLead) btnLead.disabled = false;
+        if(btnLead){
+          btnLead.disabled = false;
+          btnLead.textContent = "INVIA RICHIESTA";
+        }
+        isSubmitting = false;
         return;
       }
 
       const pickedRun = pickRun();
       if(!pickedRun || !pickedRun.answers || Object.keys(pickedRun.answers).length === 0){
         showLeadNotice("Nessuna valutazione trovata. Completa o riprendi il wizard.", false);
-        if(btnLead) btnLead.disabled = false;
+        if(btnLead){
+          btnLead.disabled = false;
+          btnLead.textContent = "INVIA RICHIESTA";
+        }
+        isSubmitting = false;
         return;
       }
 
       const leadId = generateLeadId();
+      const leadCode = formatLeadCode(leadId);
+      leadCodeValue = leadCode;
+      window.leadCodeValue = leadCode;
+      const lastSubmit = getRecentSubmit();
+      if(lastSubmit.leadCode === leadCode && lastSubmit.ts && Date.now() - lastSubmit.ts < 120000){
+        showLeadNotice("Hai già inviato la richiesta.", false);
+        if(btnLead){
+          btnLead.disabled = false;
+          btnLead.textContent = "INVIA RICHIESTA";
+        }
+        isSubmitting = false;
+        return;
+      }
+
+      const fileErrors = validateFiles(selectedFiles);
+      if(fileErrors.length){
+        showLeadNotice(fileErrors.join(" "), false);
+        if(btnLead){
+          btnLead.disabled = false;
+          btnLead.textContent = "INVIA RICHIESTA";
+        }
+        isSubmitting = false;
+        return;
+      }
+
       const attachments = [];
+      const failedAttachments = [];
       const statuses = selectedFiles.map(() => "In attesa");
       renderFileList(statuses);
 
       const payload = {
         leadId,
+        leadCode,
+        honeypot: honeypotInput?.value?.trim() || "",
         contact,
         run: {
           id: pickedRun.id,
@@ -324,6 +518,7 @@
           user_id: pickedRun.user_id
         },
         attachments,
+        failedAttachments,
         meta: {
           userAgent: navigator.userAgent,
           pageUrl: location.href,
@@ -349,7 +544,10 @@
             });
             const metaData = await metaRes.json().catch(() => ({}));
             if(!metaRes.ok || !metaData.ok){
-              throw new Error(metaData.error || "upload_url_failed");
+              statuses[i] = "Errore upload";
+              failedAttachments.push(file.name);
+              renderFileList(statuses);
+              continue;
             }
             statuses[i] = "Caricamento…";
             renderFileList(statuses);
@@ -359,7 +557,10 @@
               body: file
             });
             if(!uploadRes.ok){
-              throw new Error("upload_failed");
+              statuses[i] = "Errore upload";
+              failedAttachments.push(file.name);
+              renderFileList(statuses);
+              continue;
             }
             attachments.push({
               name: file.name,
@@ -370,7 +571,7 @@
             statuses[i] = "Caricato";
             renderFileList(statuses);
           }
-          setUploadStatus("Allegati caricati con successo.");
+          setUploadStatus(failedAttachments.length ? "Caricamento completato con errori." : "Allegati caricati con successo.");
         }
 
         const res = await fetch("/.netlify/functions/lead-submit", {
@@ -382,12 +583,23 @@
         if(!res.ok || !data.ok){
           showLeadNotice("Errore nell’invio. Riprova tra poco.", false);
         }else{
-          showLeadNotice("Richiesta inviata con successo! Ti ricontatteremo presto.", true);
+          const submittedAt = new Date().toLocaleString("it-IT");
+          window.lastSubmittedAt = submittedAt;
+          setRecentSubmit({ leadCode, ts: Date.now() });
+          showLeadConfirmation({
+            leadCode: data.leadCode || leadCode,
+            submittedAt,
+            failedAttachments
+          });
         }
       }catch(e){
         showLeadNotice("Errore durante l’invio o il caricamento. Riprova tra poco.", false);
       }finally{
-        if(btnLead) btnLead.disabled = false;
+        if(btnLead){
+          btnLead.disabled = false;
+          btnLead.textContent = "INVIA RICHIESTA";
+        }
+        isSubmitting = false;
       }
     }
 
@@ -398,6 +610,45 @@
       });
     }
 
+    if(printLead){
+      printLead.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        if(typeof window.refreshPrintArea === "function"){
+          window.refreshPrintArea();
+        }
+        window.print();
+      });
+    }
+
+    restoreDraft();
+    wireDraftInputs();
+
+  </script>
+  <div class="print-area" id="printArea">
+    <h1>Riepilogo richiesta</h1>
+    <p><strong>Codice pratica:</strong> <span id="printLeadCode"></span></p>
+    <p><strong>Data/ora invio:</strong> <span id="printLeadDate"></span></p>
+    <h2>Contatti</h2>
+    <p id="printContact"></p>
+    <h2>Esito</h2>
+    <p id="printResult"></p>
+  </div>
+  <script>
+    const printLeadCode = document.querySelector("#printLeadCode");
+    const printLeadDate = document.querySelector("#printLeadDate");
+    const printContact = document.querySelector("#printContact");
+    const printResult = document.querySelector("#printResult");
+    function refreshPrintArea(){
+      const name = document.querySelector("#contactName")?.value?.trim() || "-";
+      const email = document.querySelector("#contactEmail")?.value?.trim() || "-";
+      const phone = document.querySelector("#contactPhone")?.value?.trim() || "-";
+      const city = document.querySelector("#contactCity")?.value?.trim() || "-";
+      if(printLeadCode) printLeadCode.textContent = window.leadCodeValue || "—";
+      if(printLeadDate) printLeadDate.textContent = window.lastSubmittedAt || new Date().toLocaleString("it-IT");
+      if(printContact) printContact.textContent = `${name} • ${email} • ${phone} • ${city}`;
+      if(printResult) printResult.textContent = document.querySelector("#badgeTxt")?.textContent || "-";
+    }
+    window.refreshPrintArea = refreshPrintArea;
   </script>
 </body>
 </html>

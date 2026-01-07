@@ -16,6 +16,7 @@ const corsHeaders = {
 const MAX_BODY_BYTES = 1024 * 1024;
 const UPLOAD_EXPIRES_SECONDS = 15 * 60;
 const READ_EXPIRES_SECONDS = 7 * 24 * 60 * 60;
+const ALLOWED_CONTENT_TYPES = new Set(["application/pdf", "image/jpeg", "image/png"]);
 
 function json(statusCode, body){
   return { statusCode, headers: corsHeaders, body: JSON.stringify(body) };
@@ -145,6 +146,9 @@ export const handler = async (event) => {
   const { leadId, filename, contentType } = payload || {};
   if(!leadId || !filename){
     return json(400, { ok:false, error:"missing_required_fields" });
+  }
+  if(contentType && !ALLOWED_CONTENT_TYPES.has(contentType)){
+    return json(400, { ok:false, error:"invalid_content_type" });
   }
 
   const bucket = process.env.GCS_BUCKET;

@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Rigenera Condominio • Esito</title>
   <link rel="stylesheet" href="./assets/area.css" />
+  <style>
+    .file-list{list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:8px}
+    .file-list li{display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:12px; color: var(--text)}
+    .file-list small{color: var(--muted)}
+  </style>
 </head>
 <body>
   <script src="./assets/vendor/auth0-spa-js.production.js"></script>
@@ -66,6 +71,15 @@
 
     <label for="contactCondo">Condominio / Indirizzo (opzionale)</label>
     <input id="contactCondo" type="text" name="condo" placeholder="Via, città, interno" />
+
+    <label for="contactCity">Città (opzionale)</label>
+    <input id="contactCity" type="text" name="city" placeholder="Es. Milano" />
+
+    <label for="leadAttachments">Allegati (PDF, JPG, PNG)</label>
+    <input id="leadAttachments" type="file" name="attachments" multiple accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" />
+    <small class="help">Puoi caricare più file. Ogni allegato verrà caricato e inviato con un link dedicato.</small>
+    <ul id="leadFiles" class="file-list"></ul>
+    <small id="uploadStatus" class="help"></small>
 
     <div class="hr"></div>
     <div class="actions">
@@ -146,43 +160,47 @@
       cta.innerHTML = `<a class="btn gold" href="./wizard.html">Completa valutazione</a>`;
       next.innerHTML = "Completa il wizard per ottenere l’esito.";
     }else if(run.result === "stop_title"){
-      cta.innerHTML = `<a class="btn" href="/contatti">Richiedi un confronto</a>`;
+      cta.innerHTML = "Richiedi contatto per presa in carico del caso. Nessun impegno. Verifica preliminare e indicazioni operative.";
       next.innerHTML = li([
         "Integrare titolo/poteri (visure, procura, mandato, ecc.)",
         "Valutare alternative praticabili e perimetro d’intervento"
       ]);
     }else if(run.result === "stop_delibera"){
-      cta.innerHTML = `<a class="btn" href="/contatti">Supporto per istruttoria assembleare</a>`;
+      cta.innerHTML = "Richiedi contatto per presa in carico del caso. Nessun impegno. Verifica preliminare e indicazioni operative.";
       next.innerHTML = li([
         "Preparare percorso informativo e materiali assembleari",
         "Ripetere valutazione dopo consenso"
       ]);
     }else if(run.result === "efficiency"){
-      cta.innerHTML = `<a class="btn gold" href="./attiva.html">Attiva analisi assistita</a>`;
+      cta.innerHTML = "Richiedi contatto per presa in carico del caso. Nessun impegno. Verifica preliminare e indicazioni operative.";
       next.innerHTML = li([
         "Sopralluogo tecnico minimo",
         "Percorso alternativo (light/detrazioni) o sola CER se compatibile"
       ]);
     }else if(run.result === "limited"){
-      cta.innerHTML = `<a class="btn gold" href="./attiva.html">Attiva (a pagamento)</a> <a class="btn secondary" href="/contatti">Analisi assistita</a>`;
+      cta.innerHTML = "Richiedi contatto per presa in carico del caso. Nessun impegno. Verifica preliminare e indicazioni operative.";
       next.innerHTML = li([
         "Validazione requisiti e documenti",
         "Scelta governance completa per fase operativa"
       ]);
     }else if(run.result === "green"){
-      cta.innerHTML = `<a class="btn gold" href="./attiva.html">Attiva progetto</a>`;
+      cta.innerHTML = "Richiedi contatto per presa in carico del caso. Nessun impegno. Verifica preliminare e indicazioni operative.";
       next.innerHTML = li([
         "Attivazione in piattaforma (contratti + governance)",
         "Checklist documentale e piano CT/CER/Finanza"
       ]);
     }else{
-      cta.innerHTML = `<a class="btn gold" href="./attiva.html">Attiva</a>`;
+      cta.innerHTML = "Richiedi contatto per presa in carico del caso. Nessun impegno. Verifica preliminare e indicazioni operative.";
       next.innerHTML = "—";
     }
 
     const STORAGE_KEY = "rigeneraCondominio:area:v1";
     const btnLead = document.querySelector("#sendLead");
     const leadNotice = document.querySelector("#leadNotice");
+    const attachmentsInput = document.querySelector("#leadAttachments");
+    const attachmentsList = document.querySelector("#leadFiles");
+    const uploadStatus = document.querySelector("#uploadStatus");
+    let selectedFiles = [];
 
     function getState(){
       try{
@@ -197,7 +215,7 @@
       const runs = Array.isArray(state.runs) ? state.runs : [];
       if(runs.length === 0) return null;
       const activeId = state.activeRunId;
-      return runs.find(r => r.id === activeId) || runs[0];
+      return runs.find(r => r.id === activeId) || runs[runs.length - 1];
     }
 
     function showLeadNotice(msg, ok){
@@ -215,15 +233,62 @@
       }
     }
 
+    function formatBytes(bytes){
+      if(!Number.isFinite(bytes)) return "";
+      const units = ["B", "KB", "MB", "GB"];
+      let size = bytes;
+      let idx = 0;
+      while(size >= 1024 && idx < units.length - 1){
+        size /= 1024;
+        idx += 1;
+      }
+      return `${size.toFixed(size >= 10 || idx === 0 ? 0 : 1)} ${units[idx]}`;
+    }
+
+    function renderFileList(statuses = []){
+      if(!attachmentsList) return;
+      attachmentsList.innerHTML = "";
+      selectedFiles.forEach((file, index) => {
+        const li = document.createElement("li");
+        const left = document.createElement("span");
+        left.textContent = `${file.name} (${formatBytes(file.size)})`;
+        const status = document.createElement("small");
+        status.textContent = statuses[index] || "In attesa";
+        li.appendChild(left);
+        li.appendChild(status);
+        attachmentsList.appendChild(li);
+      });
+    }
+
+    function setUploadStatus(text){
+      if(uploadStatus) uploadStatus.textContent = text || "";
+    }
+
+    function generateLeadId(){
+      if(window.crypto?.randomUUID) return window.crypto.randomUUID();
+      const rand = () => Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+      return `${rand()}${rand()}-${rand()}-${rand()}-${rand()}-${rand()}${rand()}${rand()}`;
+    }
+
+    if(attachmentsInput){
+      attachmentsInput.addEventListener("change", (ev) => {
+        selectedFiles = Array.from(ev.target.files || []);
+        renderFileList();
+        setUploadStatus(selectedFiles.length ? `Allegati selezionati: ${selectedFiles.length}` : "");
+      });
+    }
+
     async function sendLead(){
       if(btnLead) btnLead.disabled = true;
       showLeadNotice("Invio in corso…", true);
+      setUploadStatus("");
 
       const contact = {
         name: document.querySelector("#contactName")?.value?.trim() || "",
         email: document.querySelector("#contactEmail")?.value?.trim() || "",
         phone: document.querySelector("#contactPhone")?.value?.trim() || "",
-        condo: document.querySelector("#contactCondo")?.value?.trim() || ""
+        condo: document.querySelector("#contactCondo")?.value?.trim() || "",
+        city: document.querySelector("#contactCity")?.value?.trim() || ""
       };
 
       if(!contact.name || !contact.email || !contact.phone){
@@ -239,7 +304,13 @@
         return;
       }
 
+      const leadId = generateLeadId();
+      const attachments = [];
+      const statuses = selectedFiles.map(() => "In attesa");
+      renderFileList(statuses);
+
       const payload = {
+        leadId,
         contact,
         run: {
           id: pickedRun.id,
@@ -252,12 +323,56 @@
           answers: pickedRun.answers,
           user_id: pickedRun.user_id
         },
-        userAgent: navigator.userAgent,
-        pageUrl: location.href,
-        ts: new Date().toISOString()
+        attachments,
+        meta: {
+          userAgent: navigator.userAgent,
+          pageUrl: location.href,
+          ts: new Date().toISOString()
+        }
       };
 
       try{
+        if(selectedFiles.length > 0){
+          setUploadStatus("Caricamento allegati in corso…");
+          for(let i = 0; i < selectedFiles.length; i += 1){
+            const file = selectedFiles[i];
+            statuses[i] = "Preparazione upload…";
+            renderFileList(statuses);
+            const metaRes = await fetch("/.netlify/functions/lead-upload-url", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                leadId,
+                filename: file.name,
+                contentType: file.type || "application/octet-stream"
+              })
+            });
+            const metaData = await metaRes.json().catch(() => ({}));
+            if(!metaRes.ok || !metaData.ok){
+              throw new Error(metaData.error || "upload_url_failed");
+            }
+            statuses[i] = "Caricamento…";
+            renderFileList(statuses);
+            const uploadRes = await fetch(metaData.signedUploadUrl, {
+              method: "PUT",
+              headers: { "Content-Type": file.type || "application/octet-stream" },
+              body: file
+            });
+            if(!uploadRes.ok){
+              throw new Error("upload_failed");
+            }
+            attachments.push({
+              name: file.name,
+              contentType: file.type || "application/octet-stream",
+              gcsPath: metaData.gcsPath,
+              signedReadUrl: metaData.signedReadUrl
+            });
+            statuses[i] = "Caricato";
+            renderFileList(statuses);
+          }
+          setUploadStatus("Allegati caricati con successo.");
+        }
+
         const res = await fetch("/.netlify/functions/lead-submit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -270,7 +385,7 @@
           showLeadNotice("Richiesta inviata con successo! Ti ricontatteremo presto.", true);
         }
       }catch(e){
-        showLeadNotice("Errore di rete: controlla la connessione e riprova.", false);
+        showLeadNotice("Errore durante l’invio o il caricamento. Riprova tra poco.", false);
       }finally{
         if(btnLead) btnLead.disabled = false;
       }

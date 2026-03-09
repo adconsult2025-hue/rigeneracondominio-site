@@ -1,5 +1,5 @@
 (() => {
-  const endpoint = "https://app.certouser.it/api/lead-submit";
+  const endpoint = "https://api.base44.app/api/apps/69ae818b1605821a8982244a/functions/submitLead";
   const sourceSite = "rigeneracondominio.it";
 
   const getFieldValue = (form, names) => {
@@ -13,14 +13,6 @@
     return "";
   };
 
-  const detectLeadType = (form) => {
-    const formName = (form.getAttribute("name") || "").toLowerCase();
-    if (formName.includes("richiesta-accesso")) {
-      return "richiesta_accesso";
-    }
-    return "contatto";
-  };
-
   const ensureResponseEl = (form) => {
     let el = form.nextElementSibling;
     if (!el || !el.classList || !el.classList.contains("form-response")) {
@@ -30,41 +22,6 @@
       form.insertAdjacentElement("afterend", el);
     }
     return el;
-  };
-
-  const buildPayload = (form) => {
-    const fullName = getFieldValue(form, ["nome"]);
-    const email = getFieldValue(form, ["email"]);
-    const phone = getFieldValue(form, ["telefono", "cellulare"]);
-    const city = getFieldValue(form, ["citta", "città", "comune"]);
-    const message = getFieldValue(form, ["messaggio"]);
-    const orgNameValue = getFieldValue(form, ["condominio"]);
-    const orgName = orgNameValue || `Contatto sito – ${city || "Comune non indicato"}`;
-    const role = getFieldValue(form, ["tipologia"]);
-    const attachmentField = form.querySelector("input[type='file'][name='allegato']");
-    const attachments =
-      attachmentField && attachmentField.files && attachmentField.files.length
-        ? Array.from(attachmentField.files).map((file) => ({
-            name: file.name,
-            size: file.size,
-            type: file.type,
-          }))
-        : null;
-
-    return {
-      source_site: sourceSite,
-      lead_type: detectLeadType(form),
-      org_type: "condominio",
-      org_name: orgName,
-      full_name: fullName,
-      role,
-      email,
-      phone,
-      city,
-      message,
-      source_url: window.location.href,
-      attachments,
-    };
   };
 
   const submitForm = async (form, submitButton) => {
@@ -80,42 +37,42 @@
     responseEl.textContent = "";
 
     try {
-      const payload = buildPayload(form);
-      if (!payload.full_name || !payload.email || !payload.city || !payload.message) {
-        responseEl.textContent =
-          "Compila i campi obbligatori: Nome, Email, Città/Comune, Messaggio.";
+      const nome = getFieldValue(form, ["nome"]);
+      const email = getFieldValue(form, ["email"]);
+      const telefono = getFieldValue(form, ["telefono", "cellulare"]);
+      const comune = getFieldValue(form, ["comune", "citta", "citt\u00e0"]);
+      const messaggio = getFieldValue(form, ["messaggio"]);
+      const tipologia = getFieldValue(form, ["tipologia"]);
+
+      if (!nome || !email || !comune || !messaggio) {
+        responseEl.textContent = "Compila i campi obbligatori: Nome, Email, Citt\u00e0/Comune, Messaggio.";
         return;
       }
+
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ nome, email, telefono, comune, tipologia, messaggio }),
       });
 
       let data = null;
-      let responseText = "";
       try {
-        responseText = await response.text();
-        data = responseText ? JSON.parse(responseText) : null;
-      } catch (error) {
+        data = await response.json();
+      } catch (e) {
         data = null;
       }
 
-      if (response.ok && data && data.ok === true) {
+      if (response.ok && data && data.success === true) {
         responseEl.textContent = "Richiesta inviata correttamente. Verrai ricontattato.";
         form.reset();
       } else {
-        console.error("Lead submit error", response.status, responseText || response.statusText);
-        const message =
-          (data && (data.error || data.message)) ||
-          "Si è verificato un errore durante l'invio. Riprova tra poco.";
-        responseEl.textContent = message;
+        const msg = (data && (data.error || data.message)) || "Si \u00e8 verificato un errore durante l'invio. Riprova tra poco.";
+        responseEl.textContent = msg;
       }
     } catch (error) {
-      console.error("Lead submit error", error);
-      responseEl.textContent = "Si è verificato un errore durante l'invio. Riprova tra poco.";
+      responseEl.textContent = "Si \u00e8 verificato un errore durante l'invio. Riprova tra poco.";
     } finally {
       if (submitButton) {
         submitButton.disabled = false;
